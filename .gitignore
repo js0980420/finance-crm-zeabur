@@ -1,1 +1,7 @@
 backend/storage/app/firebase-service-account.json
+.env
+backend/.env
+frontend/node_modules/
+frontend/.env
+frontend/.env.development
+frontend/.env.production
