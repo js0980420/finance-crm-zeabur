@@ -1,0 +1,94 @@
+---
+description: 追蹤記錄功能規則，定義追蹤管理的資料結構、匯出格式與業主主系統整合規範
+globs: ["**/tracking/**", "**/components/tracking/**", "**/pages/**/tracking/**"]
+alwaysApply: true
+---
+
+# Tracking Record Rules (追蹤記錄規則)
+
+## Business Context (業務背景)
+
+追蹤記錄是CRM系統的核心功能，記錄業務與客戶的所有互動歷程。最終目標是將追蹤記錄匯出並整合到業主的主系統（台理系統）中。
+
+## Data Structure Standards (資料結構標準)
+
+### Core Tracking Record Fields (核心追蹤記錄欄位)
+
+基於業主主系統「維護進度紀錄」頁面的結構，追蹤記錄應包含：
+
+#### Required Fields 
+主要欄位（符合業主規範）：
+  - 客戶姓名：customer_name
+  - 記錄人員：tracking_person, tracking_person_name
+  - 聯繫時間：contact_time
+  - 服務階段：service_stage
+  - 商機單：opportunity_order
+  - 維護進度：maintenance_progress
+  - 商機狀態：opportunity_status
+  - 聯絡方式：contact_method
+  - 對話紀錄：conversation_record
+
+
+**業主系統**: 台理系統 - 客戶商機服務管理系統
+
+#### Export Mapping (匯出對應)
+
+```json
+{
+  "CRM系統欄位": "業主系統欄位",
+  "tracking_person": "記錄人員",
+  "contact_time": "聯繫時間",
+  "service_stage": "服務階段",
+  "opportunity_order": "商機單",
+  "maintenance_progress": "維護進度",
+  "opportunity_status": "商機狀態",
+  "contact_method": "聯絡方式",
+  "conversation_record": "對話紀錄",
+  "notes": "備註"
+}
+```
+
+#### Export File Format (匯出檔案格式)
+
+**主要格式**: Excel (.xlsx)
+- **檔案命名**: `tracking_records_YYYYMMDD_HHMMSS.xlsx`
+- **工作表名稱**: `追蹤記錄`
+- **編碼**: UTF-8 with BOM
+
+**備用格式**: CSV (.csv)
+- 用於系統間API傳輸
+- 分隔符號: 逗號 (,)
+- 文字限定符: 雙引號 (")
+
+## Development Guidelines (開發指引)
+
+### Database Design (資料庫設計)
+
+#### Primary Table: tracking_records (追蹤記錄主表)
+
+```sql
+CREATE TABLE tracking_records (
+    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    tracking_person_id BIGINT UNSIGNED NOT NULL,
+    contact_time DATETIME NOT NULL,
+    service_stage VARCHAR(50) NOT NULL,
+    opportunity_order VARCHAR(255),
+    maintenance_progress TEXT,
+    opportunity_status VARCHAR(50) NOT NULL,
+    contact_method ENUM('電話','LINE','面談','郵件','系統紀錄','其他') NOT NULL,
+    conversation_record TEXT,
+    contact_duration INT UNSIGNED,
+    customer_response TEXT,
+    notes TEXT,
+    priority ENUM('高','中','低') DEFAULT '中',
+    follow_up_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (tracking_person_id) REFERENCES users(id),
+    INDEX idx_contact_time (contact_time),
+    INDEX idx_tracking_person_date (tracking_person_id, contact_time),
+    INDEX idx_follow_up_date (follow_up_date)
+);
+
+會在追蹤管理標註已連絡後進到這頁面

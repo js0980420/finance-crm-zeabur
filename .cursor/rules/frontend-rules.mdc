@@ -1,0 +1,35 @@
+---
+description: 前端相關的部署與開發規則
+alwaysApply: true
+---
+
+# 前端規則
+
+## 前端部署策略
+
+- **目前部署環境**: Cloudflare (CF)
+  - 您的前端部署在 Cloudflare 上。
+  - **未來規劃**: 將夥伴 Linode 上的前端替換為您的 Cloudflare 前端，以實現統一管理與部署。
+
+## 前端技術棧
+
+- **框架**: Nuxt.js 3
+- **組件庫**: Vue 3
+- **語言**: TypeScript
+
+## 前端啟動
+
+請按照以下步驟操作：
+
+1. 在終端機中，先進入前端目錄：
+   `cd frontend`
+2. 啟動前端開發伺服器：`http://localhost:9121/`
+   `npm run dev:local`
+
+## Nuxt 靜態頁面部署
+
+1. 前端生成靜態頁面 (這會重新生成包含假資料的靜態檔案。)
+   請在 前端目錄 (`C:\Users\js098\Project\finance0810-develop\frontend`) 下執行此指令：
+   `npm run generate`
+2. 上傳 `frontend/.output/public` 資料夾到 Cloudflare 部署。
+3. Cloudflare 只支援靜態頁面，不支援複雜後端。

@@ -1,0 +1,122 @@
+---
+alwaysApply: true
+---
+
+# 案件規則
+
+案件狀態有10種，待處理(網路進線)+網路進線管理4種(有效客、無效客、客服、黑名單)+送件管理4種(核准撥款、核准未撥、附條件、婉拒)+追蹤中(在業務管理>追蹤管理)，切換案件狀態可切換到對應區塊
+
+側邊欄統計數字：附條件、婉拒、追蹤管理都是綠色方塊，其他都是紅色圓形
+
+案件列表規則：
+按編輯彈出的編輯視窗要全螢幕，6大區塊水平布局由左置右，每區塊欄位由上至下，最左側是基本資訊，為顯示欄位，
+
+基本資訊排序：會顯示
+由上至下依序為
+
+1. 案件狀態
+2. 時間
+3. 承辦業務
+4. 來源管道
+5. 姓名
+6. LINE資訊包含LINE顯示名稱+LINE加好友ID，前者在上，後者在下，兩者在同一欄位
+7. 諮詢項目
+8. 網站：G1-G10
+9. 聯絡資訊包括email跟手機號碼，前者在上，後者在下，兩者在同一欄位
+
+其他5區為隱藏欄位
+
+狀態選項統一：
+  - { value: 'follow_up', label: '追蹤管理' }統一為{ value: 'tracking', label: '追蹤中' }
+
+  追蹤管理頁面篩選的狀態：
+  - case_status === 'tracking'
+
+CASE_STATUS_OPTIONS 定義:
+在 <script setup> 區塊中，CASE_STATUS_OPTIONS 常數定義了 10 種案件狀態 (line 1010-1028)：
+網路進線 (1種): pending (待處理)
+網路進線管理 (4種): valid_customer (有效客), invalid_customer (無效客), customer_service (客服), blacklist (黑名單)
+送件管理 (4種): approved_disbursed (核准撥款), approved_undisbursed (核准未撥), conditional_approval (附條件), declined (婉拒)
+業務管理 (1種): tracking (追蹤中)
+- 待處理
+- 有效客
+- 無效客
+- 客服
+- 黑名單
+- 核准撥款
+- 核准未撥
+- 附條件
+- 婉拒
+- 追蹤中
+
+
+來源管道用下拉選單編輯，網站表單、官方LINE、email、專線
+
+諮詢項目用下拉選單編輯
+
+案件目錄統一為cases，而不是leads，檢查有沒有js語法錯誤
+
+側邊欄數據不要計算錯誤，應該由中央資料庫統計案件總數，再依據10個頁面個別計算該頁面案件數，除非新增案件，否則切換總數是不會變的
+
+編輯視窗=該案件的詳細欄位，所以資訊跟顯示欄位(基本資訊)是同步的
+
+網路進線新增案件預設狀態=待處理
+追蹤管理新增案件預設狀態=追蹤中
+可透過案件狀態>下拉選單切換狀態，案件就移動到對應頁面，改變側邊欄計數，因為案件數量改變
+一個狀態只會出現在一個頁面，不會出現新增案件後同時2個頁面都有同一筆資料
+
+案件欄位由左至右為
+案件狀態 下拉選單10種狀態 顯示
+業務等級 下拉選單ABC 只有在追蹤管理顯示 其他隱藏
+案件編號 隱藏
+時間 同時包含日期跟幾點幾分 顯示
+承辦業務 比照網路進線旁邊做一個小人 點下去才有下拉選單 因為方便以後做權限
+來源管道 下拉選單 網站表單、官方LINE、email、專線 顯示
+姓名 顯示
+LINE資訊 包含Line顯示名稱 Line ID 顯示
+諮詢項目 下拉選單 顯示
+網站 下拉選單 G0~G10 顯示
+聯絡資訊 包含電子郵件 手機號碼 顯示
+地區/地址 包含地區跟地址 隱藏
+需求金額 隱藏
+自定義欄位 隱藏
+
+網路進線 pages/cases/index.vue
+追蹤管理 pages/cases/tracking/index.vue
+
+案件組件 useCaseManagement.js
+UNIFIED_TABLE_COLUMNS 統一欄位
+getTableColumnsForPage 動態調整欄位
+channel: addForm.source_channel 來源管道
+DataTable.vue 組件 處理欄位2個子欄位為上下排列
+CaseEditModal.vue 隱藏欄位組件 已經正確使用了 HIDDEN_FIELDS_CONFIG
+
+前端使用了 frontend/stores/mockData.js 這個檔案來管理案件資料。
+
+
+  詳細情況如下：
+   1. 這是一個假資料庫 (Mock Store)：這個檔案模擬了資料庫的行為。它在一個名為 cases
+      的變數中存放所有的案件資料。
+   2. `addCase` 函式：當使用者在前端「新增案件」時，程式會呼叫 addCase 這個函式，將新案件的資料暫時加入到 cases
+       這個變數中。
+   3. 重新整理即消失：因為這一切都只發生在瀏覽器的記憶體中，所以只要一重新整理頁面，所有新增的案件資料就會消失
+      ，恢復到初始狀態。
+
+  結論：
+  我們要導出的資料，就存放在這個 mockData.js store 的 cases 變數裡。
+
+主表格（DataTable.vue）的內聯編輯功能：
+
+● 主表格在 line 128 有 @change="handleCellChange"
+
+● DataTable 發出 cell-change 事件
+
+● 父組件有監聽 @cell-change="handleCellChange"內連編輯內連編輯handleCellChange 函數（line 1583-1602）只處理這些欄位的變更：
+  - case_status
+  - channel
+  - purpose
+  - website_name
+
+  但沒有處理基本資訊（如 customer_name、聯絡資訊等）的變更！
+
+  這就是為什麼主表格的內聯編輯不會同步到編輯視窗。

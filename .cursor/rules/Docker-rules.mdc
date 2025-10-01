@@ -1,0 +1,54 @@
+---
+description: Docker 和 Docker Compose 的操作指令與相關規則。
+alwaysApply: true
+---
+
+# Docker 規則
+
+## Docker 指令
+
+以下是專案中常用的 Docker 和 Docker Compose 指令：
+
+```bash
+# 啟動所有服務
+docker compose up -d
+
+# 重建並啟動
+docker compose up --build -d
+
+# 強制重建 (重建Docker在根目錄(docker-compose.yml位置)(有變更才建置新映像))
+docker compose up --build --force-recreate -d
+
+# 查看後端日誌
+docker logs finance0810-develop-backend-1
+
+# 進入後端容器
+docker exec -it finance0810-develop-backend-1 /bin/sh
+
+# 查看nginx日誌
+docker logs finance0810-develop-backend-1
+
+# 進入 php-fpm 容器
+docker exec -it finance0810-develop-php-fpm-1 /bin/sh
+
+### 本地開發與整合考量
+
+- **Docker 本地測試**：建議使用 Docker Desktop 在本地運行 Docker 進行測試，為未來與夥伴後端整合做準備。
+- **版本還原**：版本還原後，需要在 Docker 容器中重新生成 Laravel `APP_KEY`，並重新安裝內部依賴項。
+
+## Dockerfile 配置
+
+以下是 `backend/Dockerfile` 的主要配置概述：
+
+- **基礎映像**: `php:8.2-fpm-alpine`
+- **系統依賴**: 安裝 `nginx`, `supervisor`, `mysql-client`, `zip`, `unzip`, `git`, `curl` 等。
+- **PHP 擴展**: 安裝 `pdo_mysql`, `mbstring`, `exif`, `pcntl`, `bcmath`, `gd`, `zip` 等。
+- **Composer**: 從 `composer:latest` 複製 Composer 到容器中。
+- **工作目錄**: 設定為 `/var/www/html`。
+- **應用程式碼**: 複製所有應用程式碼到工作目錄。
+- **權限設定**: 建立 Laravel 必要可寫目錄 (`bootstrap/cache`, `storage` 等)，並設定 `www-data` 使用者和 775 權限。
+- **PHP 依賴**: 移除 `composer.lock` 並安裝 PHP 依賴 (不包含開發依賴，優化自動載入，忽略 `ext-grpc` 平台要求)。
+- **Laravel 快取**: 清除 Laravel 配置、路由、視圖快取 (建構時執行)。
+- **Nginx & Supervisor**: 複製 Nginx 配置 (`nginx.conf`) 和 Supervisor 配置 (`supervisord.conf`) 到容器中。
+- **啟動腳本**: 複製並賦予 `startup.sh` 執行權限，作為容器的啟動命令 (`CMD`)。
+- **暴露端口**: 暴露 8000 端口。

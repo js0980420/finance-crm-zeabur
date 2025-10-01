@@ -1,0 +1,51 @@
+---
+description: 追蹤管理頁面規則
+alwaysApply: false
+---
+
+# 追蹤管理規則
+
+路徑：\frontend\pages\cases\tracking\index.vue
+
+## Follow-up Management (追蹤管理)
+
+### Business Flow (業務流程)
+
+```text
+網路進線 → 有效客 → 追蹤管理
+```
+
+### Valid Customer Stage (有效客階段)
+
+- 業務完成詳細欄位填寫後，建檔至主系統
+- 手動切換案件狀態至「追蹤管理」
+
+### Follow-up Management Features (追蹤管理功能)
+
+追蹤管理階段提供兩個主要選項：
+
+#### 1. Application Processing (進件)
+
+- 功能：將案件送至行政端處理
+- 流程：行政端負責分配案件狀態
+- 狀態管理：包含送件管理的4種狀態分類
+
+#### 2. Follow-up Tracking (追蹤)
+
+- 功能：安排後續追蹤作業
+- **追蹤行事曆**：
+  - 位置在追蹤管理頁面上方。
+  - 業務可將位於追蹤管理的客戶新增至**追蹤行事曆**安排行程。
+  - **行事曆整合**：設定追蹤日期並加入**追蹤行事曆**系統。
+  - **當日提醒**：在排定聯絡日期當天，提醒業務聯絡該客戶。
+  - **逾期通知**：如果追蹤任務逾期，會跳出逾期通知，提醒業務重新安排追蹤時間到**追蹤行事曆**。
+- 確保業務按時進行客戶追蹤。
+
+目的：管理正在追蹤中的案件，重點是業務等級和狀態管理
+  主要欄位：
+  - 基本資料：customer_name, email, phone, line_id
+  - 狀態：case_status: 'tracking' (追蹤中)
+  - 特有：business_level: 'A'/'B'/'C' (業務等級)
+  - 來源：channel, source, payload['頁面_URL']
+  - 業務：assigned_to         │
+│    跟網路進線不同的是在案件狀態右側多一個業務等級下拉選單ABC 以及可以安排追蹤行事曆 跟轉送件

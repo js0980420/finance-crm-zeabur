@@ -1,0 +1,136 @@
+---
+description: 展示Demo給業主看
+alwaysApply: false
+---
+Demo SOP：Nuxt靜態頁面
+1.前端生成靜態頁面 (這會重新生成包含假資料的靜態檔案。)
+請在 前端目錄 (C:\Users\js098\Project\finance0810-develop\frontend) 下執行此指令：
+npm run generate
+
+2.刪除舊Demo資料夾新增新的
+專案根目錄
+Remove-Item -Path demo -Recurse -Force ; mkdir -p demo ; Copy-Item -Path frontend/.output/public/* -Destination demo/ -Recurse
+
+
+暫時關閉或調整所有 API 請求：
+1.在演示版本中，將所有對 dev-finance.mercylife.cc 的 API 請求都替換為假數據或模擬成功。
+2.自動登入跳過身分驗證
+3.停止向https://dev-finance.mercylife.cc發送API請求
+修改了 frontend/composables/useLeads.js，將 list, getOne, updateOne, convertToCase, listSubmittable, removeOne 函數在模擬模式下都替換為使用假數據或模擬成功響應的邏輯。
+特別針對 list 函數，現在它會根據傳入的 status 參數來過濾 mockLeads.items。
+
+修改 frontend/pages/cases/valid-customer.vue 的 loadCases 函數：
+在模擬模式下，根據 search, selectedChannel, selectedAssignee 篩選 mockCases.items。
+更新分頁元數據 updatePagination。
+修改 frontend/composables/useUsers.js (如果存在的話)：
+在模擬模式下，讓 getUsers 函數返回 mockUsers.js 中的數據。
+
+修改了 frontend/composables/useApi.js 中的 getApiBaseUrl 函數。現在，如果 config.public.apiBaseUrl 未設定，它將會拋出錯誤。這將強制我們確保 apiBaseUrl 總是正確地設定為 /mock-api
+
+題在於 useSidebarBadges.js 和 contact-calendar.vue 仍在調用實際 API
+需要修復 useApi.js，為 contact-schedules 相關的 API 調用添加 mock 數據
+
+我的建議是修改 useFirebaseChat.js 和其他 Firebase
+  相關的檔案，讓它們也回傳寫死的假數據，而不是真的去連線。這樣聊天室在 demo
+  中看起來就會是正常的，但實際上並未連上網路。
+  useFirebaseStaffStats.js 這個檔案的內容出乎意料，它已經內建了模擬模式。
+
+  問題根源
+
+  這個錯誤揭示了一個關鍵點：您部署在 `pages.dev` 上的 Demo 版本，實際上正在嘗試呼叫真實的
+  API，而不是使用我們之前確認的模擬設定 (`/mock-api`)。
+
+
+  這通常是因為在部署環境 (例如 Cloudflare Pages 的後台) 中，設定了一個名為 NUXT_PUBLIC_API_BASE_URL
+  的環境變數，其值被設為 https://dev-finance.mercylife.cc/api。這個環境變數的優先級高於您在 nuxt.config.ts
+  中設定的 /mock-api，因此覆蓋了模擬設定。
+
+  解決方案
+
+
+  要讓這個 Demo 網站使用假數據並解決此錯誤，我們需要強制它使用 /mock-api
+  路徑。雖然我無法直接更改您的部署後台設定，但我可以修改程式碼來達到這個目的。
+
+  我的建議是：修改 useApi.js，加入一個判斷邏輯：如果當前網站的網址是
+  `https://crm-nuxt-demo.pages.dev`，就強制使用 `/mock-api`，忽略任何環境變數的設定。
+
+
+  這樣可以確保您的 Demo 網站永遠使用假數據
+
+
+  構建靜態頁面指令，輸出至frontend/.output/public/
+  npm run generate
+
+  
+
+  重啟前端
+  npm run dev:local
+
+
+  Cloudflare部屬必須以index.html為預設頁面=網路進線
+Demo SOP：Nuxt靜態頁面
+1.前端生成靜態頁面 (這會重新生成包含假資料的靜態檔案。)
+請在 前端目錄 (C:\Users\js098\Project\finance0810-develop\frontend) 下執行此指令：
+npm run generate
+
+2.刪除舊Demo資料夾新增新的
+專案根目錄
+Remove-Item -Path demo -Recurse -Force ; mkdir -p demo ; Copy-Item -Path frontend/.output/public/* -Destination demo/ -Recurse
+
+
+暫時關閉或調整所有 API 請求：
+1.在演示版本中，將所有對 dev-finance.mercylife.cc 的 API 請求都替換為假數據或模擬成功。
+2.自動登入跳過身分驗證
+3.停止向https://dev-finance.mercylife.cc發送API請求
+修改了 frontend/composables/useLeads.js，將 list, getOne, updateOne, convertToCase, listSubmittable, removeOne 函數在模擬模式下都替換為使用假數據或模擬成功響應的邏輯。
+特別針對 list 函數，現在它會根據傳入的 status 參數來過濾 mockLeads.items。
+
+修改 frontend/pages/cases/valid-customer.vue 的 loadCases 函數：
+在模擬模式下，根據 search, selectedChannel, selectedAssignee 篩選 mockCases.items。
+更新分頁元數據 updatePagination。
+修改 frontend/composables/useUsers.js (如果存在的話)：
+在模擬模式下，讓 getUsers 函數返回 mockUsers.js 中的數據。
+
+修改了 frontend/composables/useApi.js 中的 getApiBaseUrl 函數。現在，如果 config.public.apiBaseUrl 未設定，它將會拋出錯誤。這將強制我們確保 apiBaseUrl 總是正確地設定為 /mock-api
+
+題在於 useSidebarBadges.js 和 contact-calendar.vue 仍在調用實際 API
+需要修復 useApi.js，為 contact-schedules 相關的 API 調用添加 mock 數據
+
+我的建議是修改 useFirebaseChat.js 和其他 Firebase
+  相關的檔案，讓它們也回傳寫死的假數據，而不是真的去連線。這樣聊天室在 demo
+  中看起來就會是正常的，但實際上並未連上網路。
+  useFirebaseStaffStats.js 這個檔案的內容出乎意料，它已經內建了模擬模式。
+
+  問題根源
+
+  這個錯誤揭示了一個關鍵點：您部署在 `pages.dev` 上的 Demo 版本，實際上正在嘗試呼叫真實的
+  API，而不是使用我們之前確認的模擬設定 (`/mock-api`)。
+
+
+  這通常是因為在部署環境 (例如 Cloudflare Pages 的後台) 中，設定了一個名為 NUXT_PUBLIC_API_BASE_URL
+  的環境變數，其值被設為 https://dev-finance.mercylife.cc/api。這個環境變數的優先級高於您在 nuxt.config.ts
+  中設定的 /mock-api，因此覆蓋了模擬設定。
+
+  解決方案
+
+
+  要讓這個 Demo 網站使用假數據並解決此錯誤，我們需要強制它使用 /mock-api
+  路徑。雖然我無法直接更改您的部署後台設定，但我可以修改程式碼來達到這個目的。
+
+  我的建議是：修改 useApi.js，加入一個判斷邏輯：如果當前網站的網址是
+  `https://crm-nuxt-demo.pages.dev`，就強制使用 `/mock-api`，忽略任何環境變數的設定。
+
+
+  這樣可以確保您的 Demo 網站永遠使用假數據
+
+
+  構建靜態頁面指令，輸出至frontend/.output/public/
+  npm run generate
+
+  
+
+  重啟前端
+  npm run dev:local
+
+
+  Cloudflare部屬必須以index.html為預設頁面=網路進線

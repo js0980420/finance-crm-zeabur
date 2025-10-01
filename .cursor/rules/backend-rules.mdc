@@ -1,0 +1,34 @@
+---
+description: 後端相關的部署與開發規則
+alwaysApply: true
+---
+
+# 後端規則
+
+## 後端部署策略
+
+- **目前部署環境**: 夥伴 VPS (Linode)
+  - 您的後端目前透過夥伴的 Linode VPS 進行導流。
+
+## 後端技術棧
+
+- **框架**: Laravel 10
+- **語言**: PHP 8.2
+
+## Docker 指令
+
+```bash
+# 啟動所有服務
+docker compose up -d
+
+# 重建並啟動
+docker compose up --build -d
+
+# 強制重建
+docker compose up --build --force-recreate -d
+
+# 查看後端日誌
+docker logs finance0810-develop-backend-1
+
+# 進入後端容器
+docker exec -it finance0810-develop-backend-1 /bin/sh

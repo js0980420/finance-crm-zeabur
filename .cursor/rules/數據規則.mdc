@@ -1,0 +1,16 @@
+主表格（DataTable.vue）的內聯編輯功能：
+
+● 主表格在 line 128 有 @change="handleCellChange"
+
+● DataTable 發出 cell-change 事件
+
+● 父組件有監聽 @cell-change="handleCellChange"內連編輯內連編輯handleCellChange 函數（line 1583-1602）只處理這些欄位的變更：
+  - case_status
+  - channel
+  - purpose
+  - website_name
+
+  但沒有處理基本資訊（如 customer_name、聯絡資訊等）的變更！
+
+  這就是為什麼主表格的內聯編輯不會同步到編輯視窗。
+  

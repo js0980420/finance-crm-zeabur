@@ -1,0 +1,7 @@
+---
+description:變數、函數映射關係規則
+globs:{}
+alwaysApply: true
+---
+
+變數case是js的保留字，需要改成lead

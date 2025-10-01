@@ -1,0 +1,58 @@
+---
+description: Firebase 規則與配置，用於 CRM 系統同步官方 LINE 聊天室。
+alwaysApply: true
+---
+
+# Firebase 規則
+
+## Firebase 核心用途
+
+- Firebase 主要用於 CRM 系統與官方 LINE 聊天室之間的即時資料同步。
+
+## 目前狀態與未來規劃
+
+- **暫時註解**：目前為了開發方便，Firebase 相關的依賴項與程式碼已被暫時註解。
+- **未來加回**：未來在完成開發後，相關功能將會重新啟用。
+
+## Firebase 配置概述
+
+### `firebase.json`
+
+- **`database.rules.json`**：設定即時資料庫的規則。
+- **`firestore.rules`** 和 **`firestore.indexes.json`**：設定 Firestore 資料庫的規則和索引。
+- **`hosting`**：網站託管配置。
+- **`emulators`**：本地模擬器配置，用於開發與測試。
+
+### `database.rules.json`
+
+- **讀寫規則**：目前設定為在特定時間（2025-9-23）之前允許讀寫。
+
+### `firestore.rules` (主要規則集)
+
+- **認證檢查 (`isAuthenticated`)**：檢查用戶是否已認證。
+- **角色檢查 (`hasRole`)**：檢查用戶是否具有特定角色。
+- **管理員/主管檢查 (`isAdminOrExecutive`)**：檢查用戶是否為 admin 或 executive。
+- **員工資料存取 (`canAccessStaffData`)**：檢查用戶是否可以存取特定員工的資料。
+- **客戶分配檢查 (`isAssignedToCustomer`)**：檢查用戶是否被分配到特定客戶。
+
+#### 主要集合規則
+
+- **`/conversations/{conversationId}`**：
+  - **讀取權限**：admin/executive 可以讀取所有對話；其他用戶只能讀取分配給自己的客戶對話。
+  - **寫入權限**：僅系統服務帳戶可寫入 (通過 Firebase Admin SDK)。
+- **`/conversations/{conversationId}/messages/{messageId}`**：
+  - **讀取權限**：同對話規則。
+  - **寫入權限**：僅系統服務帳戶可寫入。
+- **`/staff_unread_stats/{staffId}`**：
+  - **讀取權限**：admin/executive 可讀取所有員工統計；員工只能讀取自己的。
+  - **寫入權限**：僅系統服務帳戶可寫入。
+- **`/admin_staff_overview/{document}`**：
+  - **讀取權限**：僅 admin/executive 可讀取。
+  - **寫入權限**：僅系統服務帳戶可寫入。
+- **`/_health_check/{document}`**：
+  - **讀取權限**：所有已認證用戶都可以讀取。
+  - **寫入權限**：禁止寫入。
+- **`/system_config/{document}`**：
+  - **讀取權限**：僅 admin/executive 可讀取。
+  - **寫入權限**：禁止通過客戶端寫入。
+- **預設規則**：拒絕所有其他未明確定義的讀寫存取。

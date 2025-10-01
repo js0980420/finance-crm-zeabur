@@ -1,0 +1,28 @@
+---
+description: MySQL 資料庫相關規則
+alwaysApply: true
+---
+
+# MySQL 規則
+
+## 資料庫架構
+
+- **類型**: MySQL 8.0
+
+## 資料表規範
+
+- 資料表名稱使用複數形式的 `snake_case` (例如: `users`, `products`)
+- 欄位名稱使用 `snake_case` (例如: `created_at`, `user_id`)
+- 主鍵統一使用 `id`
+- 時間戳欄位：`created_at`, `updated_at`
+- 軟刪除欄位：`deleted_at`
+- 外鍵命名格式：`{table_name}_id` (例如: `user_id`)
+
+## 資料庫遷移 (Migrations)
+
+- 資料庫遷移檔案的順序必須維持不變，不能打亂。
+- 建議每次資料庫結構變動都建立新的遷移檔案。
+
+## Docker 相關
+
+- **資料庫端口**: `localhost:9322`
