@@ -27,6 +27,8 @@ return [
         'http://127.0.0.1:3301',
         'http://localhost:9121',
         'http://127.0.0.1:9121',
+        'http://localhost:9122',
+        'http://127.0.0.1:9122',
         'http://localhost:9221',
         'http://127.0.0.1:9221',
         'https://dev-finance.mercylife.cc',

@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('customer_leads', function (Blueprint $table) {
             if (!Schema::hasColumn('customer_leads', 'status')) {
-                $table->string('status', 20)->default('pending')->after('assigned_to');
+                $table->string('status', 20)->default('pending');
                 $table->index(['status', 'created_at']);
             }
         });
