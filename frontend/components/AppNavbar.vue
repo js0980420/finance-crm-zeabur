@@ -5,13 +5,13 @@
       <!-- Mobile hamburger button -->
       <button
         @click="toggleMobileSidebar"
-        class="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
+        class="md:hidden p-2 hover:bg-gray-100 rounded-lg"
       >
         <Bars3Icon class="w-6 h-6" />
       </button>
 
       <!-- Breadcrumb (Desktop only) -->
-      <div class="hidden lg:flex items-center space-x-4">
+      <div class="hidden md:flex items-center space-x-4">
         <!-- Current Page Title -->
         <h1 class="text-xl font-bold text-gray-900">
           {{ currentPageTitle }}
@@ -310,6 +310,10 @@ const { toggleMobileSidebar } = sidebarStore
 const notificationsStore = useNotificationsStore()
 const { recentNotifications, unreadCount, markAsRead, markAllAsRead, clearReadNotifications } = notificationsStore
 
+watch(unreadCount, (newVal) => {
+  console.log('AppNavbar: unreadCount changed to', newVal)
+})
+
 // Breadcrumb logic
 const pageTitle = computed(() => {
   const titles = {
@@ -492,7 +496,7 @@ onMounted(() => {
     })
     
     // Start real-time notifications simulation only on client
-    notificationsStore.simulateRealTimeNotifications()
+    // notificationsStore.simulateRealTimeNotifications()
   }
 })
 </script>

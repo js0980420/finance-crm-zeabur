@@ -3,7 +3,7 @@
     <!-- Desktop Sidebar -->
     <aside
       ref="sidebar"
-      class="fixed top-0 left-0 h-full bg-[#2c2c2c] shadow-lg transition-all duration-300 z-40 hidden lg:flex lg:flex-col"
+      class="fixed top-0 left-0 h-full bg-[#2c2c2c] shadow-lg transition-all duration-300 z-50 flex flex-col"
       :class="[
         sidebarCollapsed ? 'w-20' : ''
       ]"
@@ -29,15 +29,12 @@
           :item="item"
           :collapsed="sidebarCollapsed"
           :badge="getBadgeCount(item)"
-          :badge-color="getBadgeColor(item)"
-          :get-badge-count="getBadgeCount"
-          :get-badge-color="getBadgeColor"
         />
       </nav>
 
       <!-- User Info & Logout -->
       <div class="p-4 border-t border-gray-600">
-        <div v-if="!sidebarCollapsed && isClient && authStore?.user" class="mb-3 text-center">
+        <div v-if="!sidebarCollapsed && isClient && authStore.user" class="mb-3 text-center">
           <div class="text-sm text-white">{{ authStore.user.name }}</div>
           <div class="text-xs text-white opacity-80">{{ getRoleDisplayName(authStore.user.role) }}</div>
         </div>
@@ -63,13 +60,13 @@
     <!-- Mobile Sidebar Overlay -->
     <div
       v-if="sidebarMobileOpen"
-      class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+      class="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
       @click="closeMobileSidebar"
     />
 
     <!-- Mobile Sidebar -->
     <aside
-      class="fixed top-0 left-0 h-full w-70 bg-[#2c2c2c] shadow-lg transition-transform duration-300 z-50 lg:hidden flex flex-col"
+      class="fixed top-0 left-0 h-full w-70 bg-[#2c2c2c] shadow-lg transition-transform duration-300 z-50 md:hidden flex flex-col"
       :class="[
         sidebarMobileOpen ? 'translate-x-0' : '-translate-x-full'
       ]"
@@ -97,16 +94,13 @@
           :item="item"
           :collapsed="false"
           :badge="getBadgeCount(item)"
-          :badge-color="getBadgeColor(item)"
-          :get-badge-count="getBadgeCount"
-          :get-badge-color="getBadgeColor"
           @click="closeMobileSidebar"
         />
       </nav>
 
       <!-- User Info & Logout -->
       <div class="p-4 border-t border-gray-600">
-        <div v-if="isClient && authStore?.user" class="mb-3 text-center">
+        <div v-if="isClient && authStore.user" class="mb-3 text-center">
           <div class="text-sm text-white">{{ authStore.user.name }}</div>
           <div class="text-xs text-white opacity-80">{{ getRoleDisplayName(authStore.user.role) }}</div>
         </div>
@@ -139,15 +133,7 @@ const { toggleSidebar, closeMobileSidebar } = sidebarStore
 const settingsStore = useSettingsStore()
 const { sidebarMenuItems } = storeToRefs(settingsStore)
 
-// Safely initialize auth store with error handling
-const authStore = (() => {
-  try {
-    return useAuthStore()
-  } catch (error) {
-    console.warn('Failed to initialize auth store:', error)
-    return null
-  }
-})()
+const authStore = useAuthStore()
 
 // Badge system for sidebar notifications
 const { badges, startPolling, stopPolling } = useSidebarBadges()
@@ -155,7 +141,7 @@ const { badges, startPolling, stopPolling } = useSidebarBadges()
 // Get badge count for menu item
 const getBadgeCount = (item) => {
   if (!item.href) return 0
-
+  
   // Map href to badge key
   const badgeMapping = {
     '/cases/pending': 'pending',
@@ -165,48 +151,18 @@ const getBadgeCount = (item) => {
     '/cases/customer-tracking': 'tracking',
     '/cases/blacklist': 'blacklist',
     '/cases/negotiated': 'negotiated',
-    '/sales/contact-calendar': 'contact_reminders',
-    // Lead Management (進件管理) routes
-    '/leads/valid-customer': 'valid_customer',
-    '/leads/invalid-customer': 'invalid_customer',
-    '/leads/customer-service': 'customer_service',
-    '/leads/blacklist': 'lead_blacklist',
-    // Submission Management (送件管理) routes
-    '/submissions/approved-disbursed': 'approved_disbursed',
-    '/submissions/approved-pending': 'approved_pending',
-    '/submissions/conditional': 'conditional',
-    '/submissions/declined': 'declined',
-    // Sales routes
-    '/sales/tracking-records': 'tracking_records'
+    '/sales/contact-calendar': 'contact_reminders'
   }
-
+  
   const badgeKey = badgeMapping[item.href]
   return badgeKey ? badges.value[badgeKey] : 0
-}
-
-// Get badge color for menu item based on route type
-const getBadgeColor = (item) => {
-  if (!item.href) return 'red'
-
-  // Lead Management (進件管理) routes should have red badges
-  if (item.href.startsWith('/leads/')) {
-    return 'red'
-  }
-
-  // Submission Management (送件管理) routes should have green badges
-  if (item.href.startsWith('/submissions/')) {
-    return 'green'
-  }
-
-  // Default to red for other routes
-  return 'red'
 }
 
 // 客戶端狀態標記
 const isClient = ref(false)
 const sidebar = ref(null)
 const resizeHandle = ref(null)
-const sidebarWidth = ref(240) // 預設寬度
+const sidebarWidth = ref(280) // 預設寬度
 const isDragging = ref(false)
 
 
@@ -227,9 +183,15 @@ onUnmounted(() => {
 
 // 權限過濾選單項目
 const filteredMenuItems = computed(() => {
-  // 在 SSR 階段或用戶未登入時，返回空陣列
-  if (!isClient.value || !authStore?.isLoggedIn || !authStore?.user) {
+  // 在 SSR 階段時，返回空陣列
+  if (!isClient.value) {
     return []
+  }
+
+  // 如果用戶未登入，仍然顯示選單（調試用）
+  if (!authStore.isLoggedIn || !authStore.user) {
+    console.log('用戶未登入，但顯示選單項目進行調試')
+    return sidebarMenuItems.value
   }
   
   const can = (permission) => {
@@ -246,7 +208,7 @@ const filteredMenuItems = computed(() => {
     if (item.children) {
       const filteredChildren = item.children.filter(child => {
         if (child.permissions && child.permissions.length > 0) {
-          return child.permissions.some(permission => authStore?.hasPermission(permission))
+          return child.permissions.some(permission => authStore.hasPermission(permission))
         }
         return true
       })
@@ -278,13 +240,7 @@ const getRoleDisplayName = (role) => {
 
 // 登出處理
 const handleLogout = () => {
-  if (authStore) {
-    authStore.logout()
-  } else {
-    console.warn('Auth store not available for logout')
-    // Fallback: redirect to login page
-    navigateTo('/auth/login')
-  }
+  authStore.logout()
 }
 
 // 拖拽調整寬度功能

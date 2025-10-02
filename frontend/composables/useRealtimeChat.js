@@ -1,4 +1,3 @@
-/*
 import { ref, computed, watch } from 'vue'
 
 export const useRealtimeChat = () => {
@@ -15,89 +14,45 @@ export const useRealtimeChat = () => {
   const error = ref(null)
   
   // 監聽器管理
-  let watcherCleanupFns = []
+  // let watcherCleanupFns = []
 
   /**
    * 初始化即時聊天
    */
   const initialize = async () => {
-    console.log('即時聊天系統初始化 (Firebase已停用)...')
+    console.log('Firebase即時聊天系統已停用，使用API fallback模式...')
     connectionStatus.value = 'disconnected'
-    error.value = 'Firebase功能已暫時禁用'
+    error.value = 'Firebase已停用，即時聊天功能無法使用'
+    return false // 返回 false 表示初始化失敗
   }
 
   /**
    * 清理舊的監聽器
    */
-  const cleanupWatchers = () => {
-    watcherCleanupFns.forEach(cleanup => {
-      try {
-        cleanup()
-      } catch (error) {
-        console.warn('清理監聽器時出錯:', error)
-      }
-    })
-    watcherCleanupFns = []
-  }
-
+  // const cleanupWatchers = () => {
+  //   watcherCleanupFns.forEach(cleanup => {
+  //     try {
+  //       cleanup()
+  //     } catch (error) {
+  //       console.warn('清理監聽器時出錯:', error)
+  //     }
+  //   })
+  //   watcherCleanupFns = []
+  // }
+  
   /**
    * 開始Firebase監聽
    */
   const startFirebaseListeners = async () => {
-    try {
-      // 先清理舊的監聽器
-      cleanupWatchers()
-      
-      const { canViewAllChats, getLocalUser } = useAuth()
-      const user = getLocalUser()
-      
-      // Admin/executive 用戶可以看所有對話，其他用戶只能看分配給自己的
-      const staffId = canViewAllChats() ? null : user?.id
-      
-      // 監聽對話列表
-      // firebaseChat.watchConversations(staffId)
-      
-      // 監聽Firebase狀態變化 - 設置新的監聽器並保存清理函數
-      const conversationsWatcherStop = watch(firebaseChat.conversations, (newConversations) => {
-        console.log('Firebase conversations 更新:', newConversations.length)
-        conversations.value = [...newConversations]
-      }, { deep: true, immediate: true })
-      watcherCleanupFns.push(conversationsWatcherStop)
-      
-      const messagesWatcherStop = watch(firebaseChat.messages, (newMessages) => {
-        console.log('Firebase messages 更新:', Object.keys(newMessages).length, '個對話')
-        messages.value = { ...newMessages }
-      }, { deep: true, immediate: true })
-      watcherCleanupFns.push(messagesWatcherStop)
-      
-      const statusWatcherStop = watch(firebaseChat.connectionStatus, (status) => {
-        console.log('Firebase 連接狀態變化:', status)
-        connectionStatus.value = status
-        
-        // Firebase連接失敗時顯示錯誤
-        if (status === 'error') {
-          console.error('Firebase連接失敗，聊天室功能異常')
-          error.value = 'Firebase連接異常，請重新整理頁面或聯繫系統管理員'
-        } else if (status === 'connected') {
-          error.value = null
-        }
-      }, { immediate: true })
-      watcherCleanupFns.push(statusWatcherStop)
-      
-    } catch (error) {
-      console.error('Firebase監聽器啟動失敗:', error)
-      connectionStatus.value = 'error'
-      error.value = 'Firebase監聽器初始化失敗'
-    }
+    console.warn('Firebase監聽器已停用，無法啟動。')
   }
-
 
   /**
    * 載入特定用戶的訊息
    */
   const loadMessages = async (lineUserId) => {
-    // 使用Firebase監聽
-    // firebaseChat.watchMessages(lineUserId)
+    console.warn('Firebase已停用，無法載入訊息。')
+    // 這裡可以考慮添加一個API fallback來獲取歷史消息，如果需要的話
   }
 
   /**
@@ -105,10 +60,11 @@ export const useRealtimeChat = () => {
    */
   const sendMessage = async (lineUserId, content) => {
     try {
-      // 發送訊息通過API，Firebase會自動同步更新
+      // 發送訊息通過API
       const response = await replyMessage(lineUserId, content)
       
-      // Firebase模式下，訊息會通過即時監聽自動更新
+      // 在Firebase停用模式下，訊息不會通過即時監聽自動更新
+      // 可能需要手動更新 messages 狀態 (如果需要實時顯示發送的訊息)
       return response
     } catch (error) {
       console.error('發送訊息失敗:', error)
@@ -120,20 +76,20 @@ export const useRealtimeChat = () => {
    * 停止監聽特定用戶訊息
    */
   const unwatchMessages = (lineUserId) => {
-    // firebaseChat.unwatchMessages(lineUserId)
+    console.warn('Firebase已停用，無法停止監聽訊息。')
   }
 
   /**
    * 清理所有資源
    */
   const cleanup = () => {
-    console.log('清理Firebase即時聊天資源...')
+    console.log('清理即時聊天資源...')
     
     // 清理監聽器
-    cleanupWatchers()
+    // cleanupWatchers() 
     
-    // 清理Firebase資源
-    // firebaseChat.cleanup()
+    // 清理Firebase資源 (不再需要)
+    // firebaseChat.cleanup() 
     
     // 重置狀態
     conversations.value = []
@@ -141,19 +97,14 @@ export const useRealtimeChat = () => {
     connectionStatus.value = 'disconnected'
     error.value = null
     
-    console.log('Firebase即時聊天資源清理完成')
+    console.log('即時聊天資源清理完成')
   }
 
   /**
    * 獲取連接狀態文字
    */
   const getConnectionStatusText = () => {
-    switch (connectionStatus.value) {
-      case 'connected': return '已連接'
-      case 'connecting': return '連接中...'
-      case 'error': return '連接異常'
-      default: return '未連接'
-    }
+    return 'Firebase已停用'
   }
 
   return {
@@ -164,12 +115,11 @@ export const useRealtimeChat = () => {
     error: readonly(error),
     
     // 方法
-    initialize: () => console.warn('即時聊天功能已禁用'), // 禁用初始化
-    loadMessages: () => console.warn('載入訊息功能已禁用'), // 禁用載入訊息
+    initialize,
+    loadMessages,
     sendMessage,
-    unwatchMessages: () => console.warn('停止監聽訊息功能已禁用'), // 禁用停止監聽訊息
-    cleanup: () => console.warn('即時聊天清理功能已禁用'), // 禁用清理
-    getConnectionStatusText: () => '功能已禁用' // 禁用狀態文字
+    unwatchMessages,
+    cleanup,
+    getConnectionStatusText
   }
 }
-*/

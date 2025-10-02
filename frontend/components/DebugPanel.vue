@@ -50,15 +50,17 @@
       <div class="p-3 border-b border-gray-100">
         <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">系統狀態</div>
         <div class="grid grid-cols-2 gap-2">
+          <!--
           <div class="bg-gray-50 rounded p-2">
-            <div class="text-xs text-gray-500">聊天室</div>
+            <div class="text-xs text-gray-500">Firebase</div>
             <div :class="[
               'text-sm font-medium',
-              systemHealth?.chat_connection ? 'text-green-600' : 'text-red-600'
+              systemHealth?.firebase_connection ? 'text-green-600' : 'text-red-600'
             ]">
-              {{ systemHealth?.chat_connection ? '正常' : '異常' }}
+              {{ systemHealth?.firebase_connection ? '正常' : '異常' }}
             </div>
           </div>
+          -->
           <div class="bg-gray-50 rounded p-2">
             <div class="text-xs text-gray-500">MySQL</div>
             <div :class="[
@@ -87,8 +89,9 @@
             <span>{{ loading.healthCheck ? '檢查中...' : '健康檢查' }}</span>
           </button>
           
+          <!--
           <button
-            @click="syncData"
+            @click="syncToFirebase"
             :disabled="loading.sync"
             class="w-full text-xs bg-green-50 text-green-700 px-2 py-1 rounded hover:bg-green-100 disabled:opacity-50 transition-colors flex items-center justify-center space-x-1"
           >
@@ -96,8 +99,9 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
             </svg>
-            <span>{{ loading.sync ? '同步中...' : '資料同步' }}</span>
+            <span>{{ loading.sync ? '同步中...' : 'Firebase 同步' }}</span>
           </button>
+          -->
           
           <button
             @click="validateData"
@@ -115,26 +119,27 @@
 
       <!-- Detailed Information -->
       <div v-if="showDetails" class="p-3 space-y-3">
-        <!-- Firebase Details -->
-        <div class="bg-gray-50 rounded p-2">
-          <div class="text-xs font-medium text-gray-700 mb-1">聊天室同步資訊</div>
+        <!--
+        <div v-if="systemHealth?.firebase" class="bg-gray-50 rounded p-2">
+          <div class="text-xs font-medium text-gray-700 mb-1">Firebase 詳細資訊</div>
           <div class="space-y-1 text-xs">
             <div class="flex justify-between">
               <span class="text-gray-500">連接狀態：</span>
-              <span :class="systemHealth.chat_connection ? 'text-green-600' : 'text-red-600'">
-                {{ systemHealth.chat_connection ? '已連接' : '斷線' }}
+              <span :class="systemHealth.firebase_connection ? 'text-green-600' : 'text-red-600'">
+                {{ systemHealth.firebase_connection ? '已連接' : '斷線' }}
               </span>
             </div>
             <div class="flex justify-between">
               <span class="text-gray-500">專案ID：</span>
-              <span class="text-gray-700">{{ systemHealth.chat_config?.project_id ? '已設定' : '未設定' }}</span>
+              <span class="text-gray-700">{{ systemHealth.firebase?.configuration?.project_id ? '已設定' : '未設定' }}</span>
             </div>
             <div class="flex justify-between">
               <span class="text-gray-500">資料庫URL：</span>
-              <span class="text-gray-700">{{ systemHealth.chat_config?.database_url ? '已設定' : '未設定' }}</span>
+              <span class="text-gray-700">{{ systemHealth.firebase?.configuration?.database_url ? '已設定' : '未設定' }}</span>
             </div>
           </div>
         </div>
+        -->
 
         <!-- MySQL Details -->
         <div v-if="systemHealth?.mysql" class="bg-gray-50 rounded p-2">
@@ -184,7 +189,7 @@
             </div>
             <div class="flex justify-between">
               <span class="text-gray-500">Firebase：</span>
-              <span class="text-gray-700">{{ lastValidationResult.chat_messages_count || 0 }} 筆</span>
+              <span class="text-gray-700">{{ lastValidationResult.firebase_count || 0 }} 筆</span>
             </div>
             <div class="flex justify-between">
               <span class="text-gray-500">一致性：</span>
@@ -247,7 +252,7 @@ const lastValidationResult = ref(null)
 // Loading states
 const loading = ref({
   healthCheck: false,
-  sync: false,
+  // sync: false,
   validation: false
 })
 
@@ -329,31 +334,31 @@ const refreshHealthCheck = async () => {
   }
 }
 
-const syncData = async () => {
-  loading.value.sync = true
-  try {
-    const { data: response, error } = await post('/chat/batch-sync', {
-      limit: 50,
-      force: false
-    })
+// const syncToFirebase = async () => {
+//   loading.value.sync = true
+//   try {
+//     const { data: response, error } = await post('/chat/batch-sync', {
+//       limit: 50,
+//       force: false
+//     })
     
-    if (error) {
-      throw new Error(error.message || '同步失敗')
-    }
+//     if (error) {
+//       throw new Error(error.message || '同步失敗')
+//     }
     
-    if (response.success) {
-      lastSyncResult.value = response.data
-      showNotification('success', `同步完成：${response.data.synced} 成功，${response.data.failed} 失敗`)
-    } else {
-      throw new Error(response.error || 'Sync failed')
-    }
-  } catch (error) {
-    console.error('Firebase sync failed:', error)
-    showNotification('error', 'Firebase 同步失敗：' + error.message)
-  } finally {
-    loading.value.sync = false
-  }
-}
+//     if (response.success) {
+//       lastSyncResult.value = response.data
+//       showNotification('success', `同步完成：${response.data.synced} 成功，${response.data.failed} 失敗`)
+//     } else {
+//       throw new Error(response.error || 'Sync failed')
+//     }
+//   } catch (error) {
+//     console.error('Firebase sync failed:', error)
+//     showNotification('error', 'Firebase 同步失敗：' + error.message)
+//   } finally {
+//     loading.value.sync = false
+//   }
+// }
 
 const validateData = async () => {
   loading.value.validation = true
@@ -416,7 +421,7 @@ watch(position, (newPosition) => {
 // Expose methods for external access (e.g., from chat page)
 defineExpose({
   refreshHealthCheck,
-  syncData,
+  // syncToFirebase,
   validateData,
   toggleCollapse,
   isCollapsed
