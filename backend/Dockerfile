@@ -14,8 +14,7 @@ RUN apk add --no-cache \
     libxml2-dev \
     freetype-dev \
     libjpeg-turbo-dev \
-    libzip-dev \
-    coreutils
+    libzip-dev
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
@@ -27,6 +26,9 @@ RUN docker-php-ext-install \
     bcmath \
     gd \
     zip
+
+# Explicitly enable pdo_mysql
+RUN docker-php-ext-enable pdo_mysql
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -49,26 +51,11 @@ RUN set -eux; \
     chown -R www-data:www-data bootstrap storage; \
     chmod -R 775 bootstrap storage
 
-# Install PHP dependencies with optimized settings
-# Set PHP configuration for better performance during build
-RUN echo "memory_limit = 2G" >> /usr/local/etc/php/conf.d/memory.ini && \
-    echo "max_execution_time = 900" >> /usr/local/etc/php/conf.d/execution.ini && \
-    echo "max_input_time = 900" >> /usr/local/etc/php/conf.d/execution.ini
-
-# Set composer configuration for better performance and timeout handling
-RUN composer config --global process-timeout 900 && \
-    composer config --global cache-dir /tmp/composer-cache
-
-# Install dependencies with optimized environment
+# Install PHP dependencies  
+# Handle potential lock file sync issues and platform requirements
+# Remove outdated lock file and install dependencies with platform requirement ignoring
 RUN rm -f composer.lock && \
-    COMPOSER_MEMORY_LIMIT=-1 COMPOSER_PROCESS_TIMEOUT=900 composer update --no-interaction --ignore-platform-req=ext-grpc --no-cache --no-scripts && \
-    COMPOSER_MEMORY_LIMIT=-1 COMPOSER_PROCESS_TIMEOUT=900 composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-req=ext-grpc --no-cache --no-scripts
-
-# Copy and run package discovery script
-COPY docker/package-discover.sh /tmp/package-discover.sh
-RUN chmod +x /tmp/package-discover.sh && \
-    /tmp/package-discover.sh && \
-    rm /tmp/package-discover.sh
+    composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-req=ext-grpc
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
@@ -86,11 +73,14 @@ COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/startup.sh /startup.sh
 
+# Copy custom PHP-FPM configuration
+COPY docker/www.conf /etc/php82/php-fpm.d/www.conf
+
 # Make startup script executable
 RUN chmod +x /startup.sh
 
-# Create Nginx and supervisor directories
-RUN mkdir -p /var/log/supervisor /run/nginx
+# Create Nginx, supervisor, and Nginx log directories
+RUN mkdir -p /var/log/supervisor /run/nginx /var/log/nginx
 
 EXPOSE 8000
 
