@@ -22,6 +22,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${BACKEND_PORT}:8000"
+    volumes:
+      - ./backend:/var/www/html
+      - backend_bootstrap_cache:/var/www/html/bootstrap/cache
     environment:
       - APP_NAME=${APP_NAME}
       - APP_ENV=${APP_ENV}
@@ -29,7 +32,7 @@ services:
       - APP_KEY=${APP_KEY}
       - APP_URL=${APP_URL}
       - DB_CONNECTION=${DB_CONNECTION}
-      - DB_HOST=${DB_HOST}
+      - DB_HOST=mysql
       - DB_PORT=3306
       - DB_DATABASE=${DB_DATABASE}
       - DB_USERNAME=${DB_USERNAME}
@@ -47,38 +50,19 @@ services:
       - MAIL_PASSWORD=${MAIL_PASSWORD}
       - MAIL_ENCRYPTION=${MAIL_ENCRYPTION}
       - BROADCAST_DRIVER=${BROADCAST_DRIVER:-null}
-      # Firebase 配置環境變數
       - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
       - FIREBASE_DATABASE_URL=${FIREBASE_DATABASE_URL}
       - FIREBASE_CREDENTIALS=${FIREBASE_CREDENTIALS}
-    volumes:
-      # Mount entire backend code for live updates
-      - ./backend:/var/www/html
-      # Persistent storage
-      - ./backend/storage:/var/www/html/storage
-      - backend_bootstrap_cache:/var/www/html/bootstrap/cache
-    command: |
-      sh -c "
-        # Ensure permissions are correct
-        chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-        chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
-
-        # Clear Laravel caches for fresh start
-        php artisan config:clear || true
-        php artisan route:clear || true
-        php artisan cache:clear || true
-        php artisan view:clear || true
-
-        # Start the application
-        php artisan serve --host=0.0.0.0 --port=8000
-      "
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - crm-network
       - npm_network
     restart: unless-stopped
+
 
   mysql:
     image: mysql:8.0
@@ -89,9 +73,16 @@ services:
       - MYSQL_DATABASE=${DB_DATABASE}
       - MYSQL_USER=${DB_USERNAME}
       - MYSQL_PASSWORD=${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USERNAME}", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./database/init:/docker-entrypoint-initdb.d
+      # Commented out due to Windows path mounting issue
+      # - ./database/init:/docker-entrypoint-initdb.d
     networks:
       - crm-network
     restart: unless-stopped
