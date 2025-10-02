@@ -17,6 +17,7 @@ class Customer extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        // 基本資訊 (列表顯示)
         'name',
         'phone',
         'email',
@@ -52,6 +53,52 @@ class Customer extends Model
         'latest_case_at',
         'version',
         'version_updated_at',
+
+        // Demo 新增欄位
+        'case_status_display',      // 案件狀態顯示
+        'consultation_item',        // 諮詢項目
+        'line_add_friend_id',      // LINE 加好友 ID
+
+        // 隱藏欄位區塊 1: 個人資料
+        'birth_date',
+        'id_number',
+        'education',
+
+        // 隱藏欄位區塊 2: 聯絡資訊
+        'home_address',
+        'landline_phone',
+        'comm_address_same_as_home',
+        'comm_address',
+        'comm_phone',
+        'residence_duration',
+        'residence_owner',
+        'telecom_operator',
+
+        // 隱藏欄位區塊 3: 公司資料
+        'company_name',
+        'company_phone',
+        'company_address',
+        'job_title',
+        'monthly_income',
+        'has_labor_insurance',
+        'company_tenure',
+
+        // 隱藏欄位區塊 4: 其他資訊
+        'demand_amount',
+        'custom_field',
+
+        // 隱藏欄位區塊 5: 緊急聯絡人
+        'emergency_contact_1_name',
+        'emergency_contact_1_relationship',
+        'emergency_contact_1_phone',
+        'contact_time_1',
+        'confidential_1',
+        'emergency_contact_2_name',
+        'emergency_contact_2_relationship',
+        'emergency_contact_2_phone',
+        'contact_time_2',
+        'confidential_2',
+        'referrer',
     ];
 
     /**
@@ -71,6 +118,15 @@ class Customer extends Model
         'blacklist_approved_at' => 'datetime',
         'latest_case_at' => 'datetime',
         'version_updated_at' => 'datetime',
+
+        // Demo 新增欄位的類型轉換
+        'birth_date' => 'date',
+        'monthly_income' => 'decimal:2',
+        'demand_amount' => 'decimal:2',
+        'comm_address_same_as_home' => 'boolean',
+        'has_labor_insurance' => 'boolean',
+        'confidential_1' => 'boolean',
+        'confidential_2' => 'boolean',
     ];
 
     /**
@@ -100,6 +156,70 @@ class Customer extends Model
     const CASE_APPROVED = 'approved';
     const CASE_REJECTED = 'rejected';
     const CASE_DISBURSED = 'disbursed';
+
+    /**
+     * Demo 案件狀態顯示常數 (用於列表篩選和顯示)
+     */
+    const CASE_STATUS_VALID_CUSTOMER = 'valid_customer';           // 有效客
+    const CASE_STATUS_INVALID_CUSTOMER = 'invalid_customer';       // 無效客
+    const CASE_STATUS_CUSTOMER_SERVICE = 'customer_service';       // 客服
+    const CASE_STATUS_BLACKLIST = 'blacklist';                    // 黑名單
+    const CASE_STATUS_APPROVED_DISBURSED = 'approved_disbursed';   // 核准撥款
+    const CASE_STATUS_APPROVED_UNDISBURSED = 'approved_undisbursed'; // 核准未撥
+    const CASE_STATUS_CONDITIONAL_APPROVAL = 'conditional_approval'; // 附條件
+    const CASE_STATUS_REJECTED = 'rejected';                      // 婉拒
+    const CASE_STATUS_TRACKING_MANAGEMENT = 'tracking_management'; // 追蹤管理
+
+    /**
+     * 取得案件狀態顯示名稱對應
+     */
+    public static function getCaseStatusDisplayLabels(): array
+    {
+        return [
+            self::CASE_STATUS_VALID_CUSTOMER => '有效客',
+            self::CASE_STATUS_INVALID_CUSTOMER => '無效客',
+            self::CASE_STATUS_CUSTOMER_SERVICE => '客服',
+            self::CASE_STATUS_BLACKLIST => '黑名單',
+            self::CASE_STATUS_APPROVED_DISBURSED => '核准撥款',
+            self::CASE_STATUS_APPROVED_UNDISBURSED => '核准未撥',
+            self::CASE_STATUS_CONDITIONAL_APPROVAL => '附條件',
+            self::CASE_STATUS_REJECTED => '婉拒',
+            self::CASE_STATUS_TRACKING_MANAGEMENT => '追蹤管理',
+        ];
+    }
+
+    /**
+     * 取得 6 大區塊欄位分組
+     */
+    public static function getFieldGroups(): array
+    {
+        return [
+            '基本資訊' => [
+                'case_status_display', 'created_at', 'assigned_to', 'channel',
+                'name', 'line_display_name', 'line_add_friend_id',
+                'consultation_item', 'website_source', 'email', 'phone'
+            ],
+            '個人資料' => [
+                'birth_date', 'id_number', 'education'
+            ],
+            '聯絡資訊' => [
+                'region', 'home_address', 'landline_phone', 'comm_address_same_as_home',
+                'comm_address', 'comm_phone', 'residence_duration', 'residence_owner', 'telecom_operator'
+            ],
+            '公司資料' => [
+                'company_name', 'company_phone', 'company_address', 'job_title',
+                'monthly_income', 'has_labor_insurance', 'company_tenure'
+            ],
+            '其他資訊' => [
+                'demand_amount', 'custom_field', 'notes'
+            ],
+            '緊急聯絡人' => [
+                'emergency_contact_1_name', 'emergency_contact_1_relationship', 'emergency_contact_1_phone',
+                'contact_time_1', 'confidential_1', 'emergency_contact_2_name', 'emergency_contact_2_relationship',
+                'emergency_contact_2_phone', 'contact_time_2', 'confidential_2', 'referrer'
+            ]
+        ];
+    }
 
     /**
      * Customer level constants

@@ -19,6 +19,12 @@ class CustomerCaseObserver
     protected function touchLatestCaseAt(CustomerCase $case): void
     {
         $customer = $case->customer;
+
+        // 如果案件沒有關聯客戶，則跳過
+        if (!$customer) {
+            return;
+        }
+
         // 取此案件的時間戳候選（狀態對應時間、否則用 created_at）
         $candidates = array_filter([
             optional($case->submitted_at)->getTimestamp(),

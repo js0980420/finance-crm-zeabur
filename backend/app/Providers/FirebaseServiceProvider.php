@@ -16,100 +16,100 @@ class FirebaseServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton('firebase.factory', function ($app) {
-            $factory = (new Factory());
+        // $this->app->singleton('firebase.factory', function ($app) {
+        //     $factory = (new Factory());
             
-            // 載入服務帳戶金鑰
-            $credentialsPath = config('services.firebase.credentials');
-            if ($credentialsPath && file_exists($credentialsPath)) {
-                $factory = $factory->withServiceAccount($credentialsPath);
-            }
+        //     // 載入服務帳戶金鑰
+        //     $credentialsPath = config('services.firebase.credentials');
+        //     if ($credentialsPath && file_exists($credentialsPath)) {
+        //         $factory = $factory->withServiceAccount($credentialsPath);
+        //     }
             
-            // 設定專案 ID
-            $projectId = config('services.firebase.project_id');
-            if ($projectId) {
-                $factory = $factory->withProjectId($projectId);
-            }
+        //     // 設定專案 ID
+        //     $projectId = config('services.firebase.project_id');
+        //     if ($projectId) {
+        //         $factory = $factory->withProjectId($projectId);
+        //     }
             
-            // 設定資料庫 URL (如果有)
-            $databaseUrl = config('services.firebase.database_url');
-            if ($databaseUrl) {
-                $factory = $factory->withDatabaseUri($databaseUrl);
-            }
+        //     // 設定資料庫 URL (如果有)
+        //     $databaseUrl = config('services.firebase.database_url');
+        //     if ($databaseUrl) {
+        //         $factory = $factory->withDatabaseUri($databaseUrl);
+        //     }
             
-            return $factory;
-        });
+        //     return $factory;
+        // });
 
-        $this->app->singleton(Firestore::class, function ($app) {
-            try {
-                return $app['firebase.factory']->createFirestore();
-            } catch (\Exception $e) {
-                // 在開發環境或缺少依賴時，記錄錯誤但不中斷應用啟動
-                \Log::warning('Failed to create Firestore client: ' . $e->getMessage());
+        // $this->app->singleton(Firestore::class, function ($app) {
+        //     try {
+        //         return $app['firebase.factory']->createFirestore();
+        //     } catch (\Exception $e) {
+        //         // 在開發環境或缺少依賴時，記錄錯誤但不中斷應用啟動
+        //         \Log::warning('Failed to create Firestore client: ' . $e->getMessage());
                 
-                // 返回一個假的 Firestore 實例或 null
-                // 具體的服務類別應該檢查是否為 null 並優雅地處理
-                return null;
-            }
-        });
+        //         // 返回一個假的 Firestore 實例或 null
+        //         // 具體的服務類別應該檢查是否為 null 並優雅地處理
+        //         return null;
+        //     }
+        // });
 
-        $this->app->singleton(Database::class, function ($app) {
-            try {
-                // 檢查配置是否完整
-                $projectId = config('services.firebase.project_id');
-                $databaseUrl = config('services.firebase.database_url');
-                $credentialsPath = config('services.firebase.credentials');
+        // $this->app->singleton(Database::class, function ($app) {
+        //     try {
+        //         // 檢查配置是否完整
+        //         $projectId = config('services.firebase.project_id');
+        //         $databaseUrl = config('services.firebase.database_url');
+        //         $credentialsPath = config('services.firebase.credentials');
                 
-                if (empty($projectId)) {
-                    throw new \RuntimeException('Firebase Project ID is not configured');
-                }
+        //         if (empty($projectId)) {
+        //             throw new \RuntimeException('Firebase Project ID is not configured');
+        //         }
                 
-                if (empty($databaseUrl)) {
-                    throw new \RuntimeException('Firebase Database URL is not configured');
-                }
+        //         if (empty($databaseUrl)) {
+        //             throw new \RuntimeException('Firebase Database URL is not configured');
+        //         }
                 
-                if (empty($credentialsPath) || !file_exists($credentialsPath)) {
-                    throw new \RuntimeException('Firebase credentials file not found: ' . $credentialsPath);
-                }
+        //         if (empty($credentialsPath) || !file_exists($credentialsPath)) {
+        //             throw new \RuntimeException('Firebase credentials file not found: ' . $credentialsPath);
+        //         }
                 
-                $database = $app['firebase.factory']->createDatabase();
-                if ($database === null) {
-                    throw new \RuntimeException('Firebase Database instance is null - check your configuration');
-                }
+        //         $database = $app['firebase.factory']->createDatabase();
+        //         if ($database === null) {
+        //             throw new \RuntimeException('Firebase Database instance is null - check your configuration');
+        //         }
                 
-                \Log::info('Firebase Database successfully initialized', [
-                    'project_id' => $projectId,
-                    'database_url' => $databaseUrl,
-                ]);
+        //         \Log::info('Firebase Database successfully initialized', [
+        //             'project_id' => $projectId,
+        //             'database_url' => $databaseUrl,
+        //         ]);
                 
-                return $database;
-            } catch (\Exception $e) {
-                // 記錄詳細錯誤信息
-                \Log::error('Failed to create Firebase Database client', [
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                    'config' => [
-                        'project_id' => config('services.firebase.project_id'),
-                        'database_url' => config('services.firebase.database_url'),
-                        'credentials_exist' => file_exists(config('services.firebase.credentials') ?: ''),
-                        'credentials_path' => config('services.firebase.credentials'),
-                    ]
-                ]);
+        //         return $database;
+        //     } catch (\Exception $e) {
+        //         // 記錄詳細錯誤信息
+        //         \Log::error('Failed to create Firebase Database client', [
+        //             'error' => $e->getMessage(),
+        //             'trace' => $e->getTraceAsString(),
+        //             'config' => [
+        //                 'project_id' => config('services.firebase.project_id'),
+        //                 'database_url' => config('services.firebase.database_url'),
+        //                 'credentials_exist' => file_exists(config('services.firebase.credentials') ?: ''),
+        //                 'credentials_path' => config('services.firebase.credentials'),
+        //             ]
+        //         ]);
                 
-                // 返回一個 Mock 實例而不是 null，避免綁定錯誤
-                return $this->createMockDatabase();
-            }
-        });
+        //         // 返回一個 Mock 實例而不是 null，避免綁定錯誤
+        //         return $this->createMockDatabase();
+        //     }
+        // });
 
-        $this->app->singleton(FirebaseAuth::class, function ($app) {
-            try {
-                return $app['firebase.factory']->createAuth();
-            } catch (\Exception $e) {
-                // 在開發環境或缺少依賴時，記錄錯誤但不中斷應用啟動
-                \Log::warning('Failed to create Firebase Auth client: ' . $e->getMessage());
-                return null;
-            }
-        });
+        // $this->app->singleton(FirebaseAuth::class, function ($app) {
+        //     try {
+        //         return $app['firebase.factory']->createAuth();
+        //     } catch (\Exception $e) {
+        //         // 在開發環境或缺少依賴時，記錄錯誤但不中斷應用啟動
+        //         \Log::warning('Failed to create Firebase Auth client: ' . $e->getMessage());
+        //         return null;
+        //     }
+        // });
         
         // 建立服務別名
         $this->app->alias(Firestore::class, 'firebase.firestore');
@@ -128,10 +128,10 @@ class FirebaseServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // 詳細的 Firebase 配置檢查
-        $this->validateFirebaseConfiguration();
+        // $this->validateFirebaseConfiguration();
         
         // 測試 Firebase 服務可用性
-        $this->testFirebaseServices();
+        // $this->testFirebaseServices();
     }
     
     /**
@@ -237,9 +237,24 @@ class FirebaseServiceProvider extends ServiceProvider
                 throw new \RuntimeException('Firebase Database not available. Path: ' . ($path ?? 'root'));
             }
             
-            public function getReferenceFromUrl(string $url): \Kreait\Firebase\Database\Reference 
+            public function getReferenceFromUrl($uri): \Kreait\Firebase\Database\Reference
             {
-                throw new \RuntimeException('Firebase Database not available. URL: ' . $url);
+                throw new \RuntimeException('Firebase Database not available. URL: ' . $uri);
+            }
+
+            public function getRuleSet(): \Kreait\Firebase\Database\RuleSet
+            {
+                throw new \RuntimeException('Firebase Database not available.');
+            }
+
+            public function updateRules(\Kreait\Firebase\Database\RuleSet $ruleSet): void
+            {
+                throw new \RuntimeException('Firebase Database not available.');
+            }
+
+            public function runTransaction(callable $callable): mixed
+            {
+                throw new \RuntimeException('Firebase Database not available.');
             }
         };
     }

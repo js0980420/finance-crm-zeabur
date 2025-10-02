@@ -80,8 +80,8 @@ class Handler extends ExceptionHandler
                     'message' => '資料庫操作失敗',
                     'error' => 'Database operation failed',
                     'debug_info' => config('app.debug') ? [
-                        'message' => $exception->getMessage(),
-                        'sql' => $exception->getSql(),
+                        'message' => mb_convert_encoding($exception->getMessage(), 'UTF-8', 'UTF-8'),
+                        'sql' => mb_convert_encoding($exception->getSql(), 'UTF-8', 'UTF-8'),
                         'code' => $exception->getCode()
                     ] : null
                 ], 500);

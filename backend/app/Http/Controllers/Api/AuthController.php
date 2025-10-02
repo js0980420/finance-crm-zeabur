@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Log; // Added for debugging
 
 class AuthController extends Controller
 {
@@ -41,12 +42,21 @@ class AuthController extends Controller
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-
         // Try to authenticate with username or email
         $credentials = $request->only(['password']);
         $user = User::where('username', $request->username)
                    ->orWhere('email', $request->username)
                    ->first();
+
+        // --- START DEBUG LOGGING ---
+        Log::info('Login attempt:', [
+            'username_input' => $request->username,
+            'password_input' => $request->password, // WARNING: Log sensitive data only in development and remove immediately!
+            'user_found' => $user ? true : false,
+            'user_status' => $user ? $user->status : 'N/A',
+            'stored_password_hash' => $user ? $user->password : 'N/A',
+        ]);
+        // --- END DEBUG LOGGING ---
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['error' => '登入資訊有誤'], 401);
