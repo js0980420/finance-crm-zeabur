@@ -1,6 +1,3 @@
-import { defineStore } from 'pinia'
-import { ref, computed, readonly, nextTick } from 'vue'
-
 export const useAuthStore = defineStore('auth', () => {
   // 用戶狀態
   const user = ref(null)
@@ -177,59 +174,45 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = userData
   }
 
-  // Point 3: Create mock admin user for development convenience mode
-  const createMockAdminUser = () => {
-    return {
-      id: 1,
-      username: 'admin',
-      email: 'admin@finance.local',
-      name: 'System Administrator (開發模式)',
-      role: 'admin',
-      roles: ['admin'],
-      permissions: ['all_access'],
-      is_admin: true,
-      is_manager: true,
-      token: 'mock_jwt_token_for_development_' + Date.now()
-    }
-  }
-
-  // Point 3: Initialize skip auth mode with mock admin user
-  const initializeSkipAuthMode = () => {
-    console.log('初始化跳過認證模式 - 建立模擬 admin 用戶')
-    const mockUser = createMockAdminUser()
-    user.value = mockUser
-
-    // Store mock user data in sessionStorage for consistency
-    if (process.client) {
-      sessionStorage.setItem('user-profile', JSON.stringify({
-        id: mockUser.id,
-        username: mockUser.username,
-        email: mockUser.email,
-        name: mockUser.name,
-        roles: mockUser.roles,
-        permissions: mockUser.permissions,
-        is_admin: mockUser.is_admin,
-        is_manager: mockUser.is_manager,
-        token: mockUser.token
-      }))
-      console.log('模擬 admin 用戶已建立:', mockUser.username)
+  // 背景驗證 token 是否有效（不阻塞頁面載入）
+  const verifyTokenInBackground = async () => {
+    if (!process.client || !user.value?.token) {
+      return
     }
 
-    return true
+    try {
+      console.log('Background token verification starting...')
+      const { get } = useApi()
+      const { data: userData, error } = await get('/auth/me')
+
+      if (!error && userData?.user) {
+        // Token 有效，更新用戶資料（保留 token）
+        user.value = {
+          ...userData.user,
+          token: user.value.token,
+          role: Array.isArray(userData.user.roles)
+            ? userData.user.roles[0]
+            : (userData.user.roles && userData.user.roles[0]) || null
+        }
+        console.log('Background token verification succeeded')
+      } else {
+        // Token 無效，清除登入狀態
+        console.log('Background token verification failed - token invalid')
+        sessionStorage.removeItem('user-profile')
+        user.value = null
+        // 重定向到登入頁
+        navigateTo('/auth/login')
+      }
+    } catch (error) {
+      console.warn('Background token verification error:', error)
+      // 如果是網絡錯誤，保留登入狀態，不強制登出
+      // 如果是 401 錯誤，useApi 會自動處理登出
+    }
   }
 
   // 初始化用戶狀態 - 單例模式，防止多次並發初始化
+  // 使用本地 token 判斷 + 背景驗證策略
   const initializeAuth = async (force = false) => {
-    // Point 3: Check skip auth mode first
-    const config = useRuntimeConfig()
-    if (config.public.skipAuth && process.client) {
-      console.log('跳過認證模式已啟用')
-      if (!user.value || force) {
-        return initializeSkipAuthMode()
-      }
-      return isLoggedIn.value
-    }
-
     // 如果已經初始化完成且不是強制重新初始化，直接返回結果
     if (_isInitialized.value && !force) {
       console.log('Auth already initialized, skipping')
@@ -253,63 +236,42 @@ export const useAuthStore = defineStore('auth', () => {
 
     // 開始初始化
     _isInitializing.value = true
-    
+
     const initPromise = (async () => {
       try {
-        console.log('Starting auth initialization...')
-        
+        console.log('Starting auth initialization (local token check + background verification)...')
+
         // 嘗試從 sessionStorage 恢復用戶資料
         const storedProfile = sessionStorage.getItem('user-profile')
-        
+
         if (storedProfile) {
           try {
             const userProfile = JSON.parse(storedProfile)
-            
-            // 檢查是否有 JWT token
+
+            // 檢查是否有 JWT token - 只做本地判斷
             if (!userProfile.token) {
               console.log('No JWT token found in stored profile')
               sessionStorage.removeItem('user-profile')
               user.value = null
               return false
             }
-            
-            // 驗證 JWT token 是否有效（通過 API 呼叫測試）
-            try {
-              const { get } = useApi()
-              const { data: userData, error } = await get('/auth/me')
-              
-              if (!error && userData?.user) {
-                // Token 有效，恢復用戶狀態，保留 token
-                user.value = {
-                  ...userData.user,
-                  token: userProfile.token,  // 保留原始 token
-                  role: Array.isArray(userData.user.roles) 
-                    ? userData.user.roles[0] 
-                    : (userData.user.roles && userData.user.roles[0]) || null
-                }
-                console.log('已恢復登入狀態:', userData.user.username)
-                return true // 成功恢復登入狀態
-              } else {
-                // Token 無效，清除資料
-                console.log('JWT token is invalid')
-                sessionStorage.removeItem('user-profile')
-                user.value = null
-                return false
-              }
-            } catch (apiError) {
-              console.error('API 驗證失敗:', apiError)
-              // API 呼叫失敗時，保留用戶資料但標記為未驗證狀態
-              // 這樣可以避免頁面刷新時立即重定向
-              user.value = {
-                ...userProfile,
-                role: Array.isArray(userProfile.roles) 
-                  ? userProfile.roles[0] 
-                  : (userProfile.roles && userProfile.roles[0]) || null,
-                _unverified: true // 標記為未驗證狀態
-              }
-              console.log('API 暫時無法連線，保留登入狀態但標記為未驗證')
-              return true // 暫時允許通過
+
+            // 直接使用本地存儲的用戶資料，不阻塞頁面載入
+            user.value = {
+              ...userProfile,
+              role: Array.isArray(userProfile.roles)
+                ? userProfile.roles[0]
+                : (userProfile.roles && userProfile.roles[0]) || null
             }
+            console.log('已從本地恢復登入狀態:', userProfile.username)
+
+            // 在背景非同步驗證 token（不阻塞頁面載入）
+            setTimeout(() => {
+              verifyTokenInBackground()
+            }, 100)
+
+            return true // 先放行，背景驗證
+
           } catch (error) {
             console.error('解析用戶資料失敗:', error)
             sessionStorage.removeItem('user-profile')
@@ -331,18 +293,18 @@ export const useAuthStore = defineStore('auth', () => {
           localStorage.removeItem('auth-token')
           console.log('已清除舊的 localStorage 資料')
         }
-        
+
         // 標記初始化完成
         _isInitializing.value = false
         _isInitialized.value = true
         _initPromise.value = null
-        console.log('Auth initialization completed')
+        console.log('Auth initialization completed (local check done, background verification scheduled)')
       }
     })()
-    
+
     // 保存 Promise 以供其他調用等待
     _initPromise.value = initPromise
-    
+
     return await initPromise
   }
   
@@ -379,7 +341,7 @@ export const useAuthStore = defineStore('auth', () => {
     roles,
     _isInitialized,
     _isInitializing,
-
+    
     // 方法
     login,
     register,
@@ -387,10 +349,6 @@ export const useAuthStore = defineStore('auth', () => {
     setUser,
     initializeAuth,
     waitForInitialization,
-    hasPermission,
-
-    // Point 3: Development convenience mode methods
-    createMockAdminUser,
-    initializeSkipAuthMode
+    hasPermission
   }
 })

@@ -21,7 +21,7 @@
         </div>
       </div>
       <p class="text-gray-600 ">
-        診斷系統狀態、監控資料庫連接
+        診斷系統狀態、管理Firebase同步、監控資料庫連接
       </p>
       
       <!-- 權限提示與調試信息 -->
@@ -77,26 +77,6 @@
             </span>
           </button>
 
-          <!--
-          <button
-            @click="syncToFirebase"
-            :disabled="loading.sync"
-            class="flex flex-col items-center p-4 bg-gray-100 text-gray-900 border-2 border-gray-300 rounded-lg hover:bg-gray-200 hover:border-green-500 transition-colors disabled:opacity-50"
-          >
-            <svg v-if="loading.sync" class="animate-spin w-8 h-8 text-green-500 mb-2" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-            </svg>
-            <svg v-else class="w-8 h-8 text-green-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-            </svg>
-            <span class="text-sm font-medium text-gray-900 ">
-              {{ loading.sync ? '同步中...' : 'Firebase 同步' }}
-            </span>
-          </button>
--->
-
-          <!--
           <button
             @click="validateData"
             :disabled="loading.validation"
@@ -113,7 +93,6 @@
               {{ loading.validation ? '驗證中...' : '資料完整性驗證' }}
             </span>
           </button>
--->
 
           <button
             @click="enableDebugMode"
@@ -127,135 +106,11 @@
               {{ debugModeEnabled ? '除錯模式：已啟用' : '啟用除錯模式' }}
             </span>
           </button>
-
-          <!--
-          <button
-            @click="testFirebaseConnection"
-            :disabled="false"
-            class="flex flex-col items-center p-4 bg-gray-100 text-gray-900 border-2 border-gray-300 rounded-lg hover:bg-gray-200 hover:border-orange-500 transition-colors disabled:opacity-50"
-          >
-            <svg v-if="loading.firebaseTest" class="animate-spin w-8 h-8 text-orange-500 mb-2" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-            </svg>
-            <svg v-else class="w-8 h-8 text-orange-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/>
-            </svg>
-            <span class="text-sm font-medium text-gray-900 ">
-              {{ loading.firebaseTest ? '測試中...' : 'Firebase連接測試' }}
-            </span>
-          </button>
--->
-
-        <!--
-          <button
-            @click="fullSyncToFirebase"
-            :disabled="loading.fullSync"
-            class="flex flex-col items-center p-4 bg-gray-100 text-gray-900 border-2 border-gray-300 rounded-lg hover:bg-gray-200 hover:border-indigo-500 transition-colors disabled:opacity-50"
-          >
-            <svg v-if="loading.fullSync" class="animate-spin w-8 h-8 text-indigo-500 mb-2" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-            </svg>
-            <svg v-else class="w-8 h-8 text-indigo-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-            </svg>
-            <span class="text-sm font-medium text-gray-900 ">
-              {{ loading.fullSync ? '完整同步中...' : 'Firebase完整同步' }}
-            </span>
-          </button>
--->
         </div>
       </div>
 
       <!-- 系統狀態總覽 -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Firebase 狀態 -->
-        <!--
-        <div class="bg-white rounded-lg shadow-sm p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <svg class="w-5 h-5 mr-2 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd"/>
-            </svg>
-            Firebase Realtime Database
-          </h3>
-          
-          <div class="space-y-3">
-            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-              <span class="text-sm text-gray-600 ">連接狀態</span>
-              <span :class="[
-                'text-sm font-medium px-2 py-1 rounded',
-                systemHealth?.firebase_connection ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-              ]">
-                {{ systemHealth?.firebase_connection ? '已連接' : '未連接' }}
-              </span>
-            </div>
-            
-            <div v-if="systemHealth?.configuration" class="space-y-2">
-              <div class="flex justify-between items-center">
-                <span class="text-sm text-gray-600 ">專案ID</span>
-                <span :class="[
-                  'text-xs px-2 py-1 rounded',
-                  systemHealth.configuration.project_id ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                ]">
-                  {{ systemHealth.configuration.project_id ? '已配置' : '未配置' }}
-                </span>
-              </div>
-              
-              <div class="flex justify-between items-center">
-                <span class="text-sm text-gray-600 ">資料庫URL</span>
-                <span :class="[
-                  'text-xs px-2 py-1 rounded',
-                  systemHealth.configuration.database_url ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                ]">
-                  {{ systemHealth.configuration.database_url ? '已配置' : '未配置' }}
-                </span>
-              </div>
-              
-              <div class="flex justify-between items-center">
-                <span class="text-sm text-gray-600 ">憑證檔案</span>
-                <span :class="[
-                  'text-xs px-2 py-1 rounded',
-                  systemHealth.configuration.credentials_file_exists ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                ]">
-                  {{ systemHealth.configuration.credentials_file_exists ? '存在' : '缺失' }}
-                </span>
-              </div>
-              
-              <!-- 詳細配置信息 -->
-              <div v-if="systemHealth.firebase?.configuration_details" class="mt-3 p-2 bg-gray-50 rounded text-xs">
-                <div class="font-medium text-gray-700 mb-1">配置詳情：</div>
-                <div class="space-y-1 text-gray-600 ">
-                  <div>專案: {{ systemHealth.firebase.configuration_details.project_id || '未設定' }}</div>
-                  <div>URL: {{ systemHealth.firebase.configuration_details.database_url ? '已設定' : '未設定' }}</div>
-                  <div>憑證可讀: {{ systemHealth.firebase.configuration_details.credentials_file_readable ? '是' : '否' }}</div>
-                </div>
-              </div>
-              
-              <!-- 連接詳情 -->
-              <div v-if="systemHealth.firebase?.connection_details" class="mt-3 p-2 bg-gray-50 rounded text-xs">
-                <div class="font-medium text-gray-700 mb-1">連接狀態：</div>
-                <div class="space-y-1 text-gray-600 ">
-                  <div>測試時間: {{ formatDateTime(systemHealth.firebase.connection_details.last_test_time) }}</div>
-                  <div v-if="systemHealth.firebase.connection_details.error">錯誤: {{ systemHealth.firebase.connection_details.error }}</div>
-                  <div v-if="systemHealth.firebase.connection_details.error_type">類型: {{ systemHealth.firebase.connection_details.error_type }}</div>
-                  <div v-if="!systemHealth.firebase.connection_details.error">狀態: {{ systemHealth.firebase.connection_details.response_time }}</div>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="systemHealth?.database_connectivity" class="p-3 bg-blue-50 rounded-lg">
-              <div class="text-sm text-blue-800 ">
-                Firebase資料: {{ systemHealth.database_connectivity.data_count || 0 }} 筆對話
-              </div>
-              <div v-if="systemHealth.database_connectivity.error" class="text-xs text-red-600 mt-1">
-                錯誤: {{ systemHealth.database_connectivity.error }}
-              </div>
-            </div>
-          </div>
-        </div>
--->
-
         <!-- MySQL 狀態 -->
         <div class="bg-white rounded-lg shadow-sm p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -312,7 +167,6 @@
       <!-- 同步結果與驗證結果 -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- 上次同步結果 -->
-        <!--
         <div v-if="lastSyncResult" class="bg-white rounded-lg shadow-sm p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">上次同步結果</h3>
           
@@ -357,10 +211,8 @@
             </div>
           </div>
         </div>
--->
 
         <!-- 資料驗證結果 -->
-        <!--
         <div v-if="lastValidationResult" class="bg-white rounded-lg shadow-sm p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">資料完整性驗證</h3>
           <div class="space-y-3">
@@ -383,72 +235,7 @@
             </div>
           </div>
         </div>
--->
         
-        <!-- Firebase連接測試結果 -->
-        <!--
-        <div v-if="lastFirebaseTestResult" class="bg-white rounded-lg shadow-sm p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <svg class="w-5 h-5 mr-2" :class="lastFirebaseTestResult.overall_success ? 'text-green-500' : 'text-red-500'" fill="currentColor" viewBox="0 0 20 20">
-              <path v-if="lastFirebaseTestResult.overall_success" fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-              <path v-else fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-            </svg>
-            Firebase連接測試
-          </h3>
-          
-          <div class="space-y-3">
-            <!-- 整體狀態 -->
-            <div class="flex justify-between items-center p-3 rounded-lg" :class="lastFirebaseTestResult.overall_success ? 'bg-green-50' : 'bg-red-50'">
-              <span class="text-sm font-medium" :class="lastFirebaseTestResult.overall_success ? 'text-green-800' : 'text-red-800'">
-                測試結果
-              </span>
-              <span class="text-sm font-medium px-2 py-1 rounded" :class="lastFirebaseTestResult.overall_success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
-                {{ lastFirebaseTestResult.overall_success ? '成功' : '失敗' }}
-              </span>
-            </div>
-            
-            <!-- 測試步驟 -->
-            <div v-if="lastFirebaseTestResult.test_steps?.length" class="space-y-2">
-              <div class="text-sm font-medium text-gray-700 mb-2">測試步驟：</div>
-              <div 
-                v-for="(step, index) in lastFirebaseTestResult.test_steps" 
-                :key="index"
-                class="flex items-center justify-between p-2 bg-gray-50 rounded text-xs"
-              >
-                <div class="flex items-center space-x-2">
-                  <span class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium" 
-                        :class="step.status === 'passed' ? 'bg-green-500' : step.status === 'failed' ? 'bg-red-500' : 'bg-yellow-500'">
-                    {{ step.step }}
-                  </span>
-                  <span class="text-gray-700 ">{{ step.name }}</span>
-                </div>
-                <span class="text-xs px-2 py-1 rounded font-medium"
-                      :class="step.status === 'passed' ? 'bg-green-100 text-green-800' : 
-                              step.status === 'failed' ? 'bg-red-100 text-red-800' :
-                              'bg-yellow-100 text-yellow-800'">
-                  {{ step.status === 'passed' ? '✓ 成功' : step.status === 'failed' ? '✗ 失敗' : '⧖ 進行中' }}
-                </span>
-              </div>
-              
-              <!-- 錯誤詳情 -->
-              <div v-if="lastFirebaseTestResult.test_steps.some(step => step.status === 'failed' && step.error)" class="mt-3">
-                <div class="text-sm font-medium text-red-700 mb-2">錯誤詳情：</div>
-                <div v-for="(step, index) in lastFirebaseTestResult.test_steps.filter(step => step.status === 'failed' && step.error)" 
-                     :key="'error-' + index"
-                     class="p-2 bg-red-50 border border-red-200 rounded text-xs">
-                  <div class="font-medium text-red-800 ">{{ step.name }}</div>
-                  <div class="text-red-700 mt-1">{{ step.error }}</div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 測試時間 -->
-            <div class="text-xs text-gray-500 text-center border-t pt-2">
-              測試時間: {{ formatDateTime(lastFirebaseTestResult.timestamp) }}
-            </div>
-          </div>
-        </div>
--->
       </div>
 
       <!-- 系統異常與建議 -->
@@ -684,7 +471,7 @@ const { user, isAdmin, isManager, hasRole } = useAuth()
 const systemHealth = ref(null)
 const lastSyncResult = ref(null)
 const lastValidationResult = ref(null)
-const lastFirebaseTestResult = ref(null)
+// const lastFirebaseTestResult = ref(null)
 const debugModeEnabled = ref(false)
 const temporaryAccess = ref(false)
 const showDebugInfo = ref(process.dev)
@@ -693,7 +480,9 @@ const showDebugInfo = ref(process.dev)
 const loading = ref({
   healthCheck: false,
   sync: false,
-  validation: false
+  validation: false,
+  // firebaseTest: false,
+  // fullSync: false
 })
 
 // Notification state
@@ -816,60 +605,57 @@ const refreshHealthCheck = async () => {
   }
 }
 
-/*
-const syncToFirebase = async () => {
-  loading.value.sync = true
-  try {
-    const { data: response, error } = await post('/debug/chat/batch-sync', {
-      limit: 100,
-      force: false
-    })
-    
-    if (error) {
-      console.error('Sync API Error:', error)
-      throw new Error(error.message || '同步失敗')
-    }
-    
-    if (response.success) {
-      lastSyncResult.value = response.data
-      showNotification('success', `Firebase同步完成：${response.data.synced} 成功，${response.data.failed} 失敗`)
-      
-      // 同步完成後自動刷新健康檢查
-      setTimeout(() => {
-        refreshHealthCheck()
-      }, 2000)
-    } else {
-      throw new Error(response.error || '同步失敗')
-    }
-  } catch (error) {
-    console.error('Firebase 同步失敗:', error)
-    
-    let errorMessage = '未知錯誤'
-    let errorDetailsData = null
-    
-    if (error.response) {
-      errorMessage = error.response.data?.error || error.response.statusText || '服務器錯誤'
-      errorDetailsData = error.response.data?.error_details || null
-      console.error('Sync Error Response:', error.response.data)
-    } else if (error.request) {
-      errorMessage = '無法連接到服務器，請檢查網路連接'
-      console.error('Sync Request Error:', error.request)
-    } else {
-      errorMessage = error.message || '請求處理失敗'
-      console.error('Sync General Error:', error.message)
-    }
-    
-    showNotification('error', 'Firebase 同步失敗：' + errorMessage)
-    if (errorDetailsData) {
-      showErrorDetails(errorMessage, errorDetailsData)
-    }
-  } finally {
-    loading.value.sync = false
-  }
-}
-*/
+// const syncToFirebase = async () => {
+//   loading.value.sync = true
+//   try {
+//     const { data: response, error } = await post('/debug/chat/batch-sync', {
+//       limit: 100,
+//       force: false
+//     })
+//     
+//     if (error) {
+//       console.error('Sync API Error:', error)
+//       throw new Error(error.message || '同步失敗')
+//     }
+//     
+//     if (response.success) {
+//       lastSyncResult.value = response.data
+//       showNotification('success', `Firebase同步完成：${response.data.synced} 成功，${response.data.failed} 失敗`)
+//       
+//       // 同步完成後自動刷新健康檢查
+//       setTimeout(() => {
+//         refreshHealthCheck()
+//       }, 2000)
+//     } else {
+//       throw new Error(response.error || '同步失敗')
+//     }
+//   } catch (error) {
+//     console.error('Firebase 同步失敗:', error)
+//     
+//     let errorMessage = '未知錯誤'
+//     let errorDetailsData = null
+//     
+//     if (error.response) {
+//       errorMessage = error.response.data?.error || error.response.statusText || '服務器錯誤'
+//       errorDetailsData = error.response.data?.error_details || null
+//       console.error('Sync Error Response:', error.response.data)
+//     } else if (error.request) {
+//       errorMessage = '無法連接到服務器，請檢查網路連接'
+//       console.error('Sync Request Error:', error.request)
+//     } else {
+//       errorMessage = error.message || '請求處理失敗'
+//       console.error('Sync General Error:', error.message)
+//     }
+//     
+//     showNotification('error', 'Firebase 同步失敗：' + errorMessage)
+//     if (errorDetailsData) {
+//       showErrorDetails(errorMessage, errorDetailsData)
+//     }
+//   } finally {
+//     loading.value.sync = false
+//   }
+// }
 
-/*
 const validateData = async () => {
   loading.value.validation = true
   try {
@@ -916,7 +702,6 @@ const validateData = async () => {
     loading.value.validation = false
   }
 }
-*/
 
 const enableDebugMode = () => {
   debugModeEnabled.value = !debugModeEnabled.value
@@ -924,148 +709,144 @@ const enableDebugMode = () => {
   // localStorage.setItem('firebase_debug_mode', debugModeEnabled.value.toString())
   
   const message = debugModeEnabled.value ? 
-    '除錯模式已啟用，聊天室頁面將顯示除錯面板' : 
+    '除錯模式已啟用' : 
     '除錯模式已關閉'
     
   showNotification('success', message)
 }
 
-/*
-const testFirebaseConnection = async () => {
-  loading.value.firebaseTest = true
-  try {
-    const { data: response, error } = await post('/debug/firebase/test-connection')
-    
-    if (error) {
-      console.error('Firebase Test API Error:', error)
-      throw new Error(error.message || 'Firebase連接測試失敗')
-    }
-    
-    if (response.success) {
-      lastFirebaseTestResult.value = response.test_results
-      showNotification('success', response.message || 'Firebase連接測試成功')
-      
-      // 顯示詳細測試結果
-      if (response.test_results) {
-        console.log('Firebase連接測試結果:', response.test_results)
-        
-        // 可以選擇顯示測試詳情
-        const testDetails = response.test_results.test_steps
-          .map(step => `步驟${step.step}: ${step.name} - ${step.status === 'passed' ? '✓' : '✗'}`)
-          .join('\n')
-        
-        showNotification('info', '測試步驟完成，請查看下方詳細結果', 5000)
-      }
-      
-      // 測試完成後自動刷新健康檢查
-      setTimeout(() => {
-        refreshHealthCheck()
-      }, 2000)
-    } else {
-      throw new Error(response.error || 'Firebase連接測試失敗')
-    }
-  } catch (error) {
-    console.error('Firebase連接測試失敗:', error)
-    
-    let errorMessage = '未知錯誤'
-    let errorDetailsData = null
-    
-    if (error.response) {
-      errorMessage = error.response.data?.error || error.response.statusText || '服務器錯誤'
-      errorDetailsData = error.response.data?.error_details || null
-      
-      // 顯示測試結果（即使失敗也要顯示）
-      if (error.response.data?.test_results) {
-        lastFirebaseTestResult.value = error.response.data.test_results
-        console.error('Firebase測試失敗結果:', error.response.data.test_results)
-        
-        const failedSteps = error.response.data.test_results.test_steps
-          ?.filter(step => step.status === 'failed')
-          ?.map(step => `${step.name}: ${step.error || '未知錯誤'}`)
-          ?.join('\n')
-        
-        if (failedSteps) {
-          console.error('失敗的測試步驟:', failedSteps)
-        }
-      }
-      
-      console.error('Firebase Test Error Response:', error.response.data)
-    } else if (error.request) {
-      errorMessage = '無法連接到服務器，請檢查網路連接'
-      console.error('Firebase Test Request Error:', error.request)
-    } else {
-      errorMessage = error.message || '請求處理失敗'
-      console.error('Firebase Test General Error:', error.message)
-    }
-    
-    showNotification('error', 'Firebase連接測試失敗：' + errorMessage)
-    if (errorDetailsData) {
-      showErrorDetails(errorMessage, errorDetailsData)
-    }
-  } finally {
-    loading.value.firebaseTest = false
-  }
-}
-*/
+// const testFirebaseConnection = async () => {
+//   loading.value.firebaseTest = true
+//   try {
+//     const { data: response, error } = await post('/debug/firebase/test-connection')
+//     
+//     if (error) {
+//       console.error('Firebase Test API Error:', error)
+//       throw new Error(error.message || 'Firebase連接測試失敗')
+//     }
+//     
+//     if (response.success) {
+//       lastFirebaseTestResult.value = response.test_results
+//       showNotification('success', response.message || 'Firebase連接測試成功')
+//       
+//       // 顯示詳細測試結果
+//       if (response.test_results) {
+//         console.log('Firebase連接測試結果:', response.test_results)
+//         
+//         // 可以選擇顯示測試詳情
+//         const testDetails = response.test_results.test_steps
+//           .map(step => `步驟${step.step}: ${step.name} - ${step.status === 'passed' ? '✓' : '✗'}`)
+//           .join('\n')
+//         
+//         showNotification('info', '測試步驟完成，請查看下方詳細結果', 5000)
+//       }
+//       
+//       // 測試完成後自動刷新健康檢查
+//       setTimeout(() => {
+//         refreshHealthCheck()
+//       }, 2000)
+//     } else {
+//       throw new Error(response.error || 'Firebase連接測試失敗')
+//     }
+//   } catch (error) {
+//     console.error('Firebase連接測試失敗:', error)
+//     
+//     let errorMessage = '未知錯誤'
+//     let errorDetailsData = null
+//     
+//     if (error.response) {
+//       errorMessage = error.response.data?.error || error.response.statusText || '服務器錯誤'
+//       errorDetailsData = error.response.data?.error_details || null
+//       
+//       // 顯示測試結果（即使失敗也要顯示）
+//       if (error.response.data?.test_results) {
+//         lastFirebaseTestResult.value = error.response.data.test_results
+//         console.error('Firebase測試失敗結果:', error.response.data.test_results)
+//         
+//         const failedSteps = error.response.data.test_results.test_steps
+//           ?.filter(step => step.status === 'failed')
+//           ?.map(step => `${step.name}: ${step.error || '未知錯誤'}`)
+//           ?.join('\n')
+//         
+//         if (failedSteps) {
+//           console.error('失敗的測試步驟:', failedSteps)
+//         }
+//       }
+//       
+//       console.error('Firebase Test Error Response:', error.response.data)
+//     } else if (error.request) {
+//       errorMessage = '無法連接到服務器，請檢查網路連接'
+//       console.error('Firebase Test Request Error:', error.request)
+//     } else {
+//       errorMessage = error.message || '請求處理失敗'
+//       console.error('Firebase Test General Error:', error.message)
+//     }
+//     
+//     showNotification('error', 'Firebase連接測試失敗：' + errorMessage)
+//     if (errorDetailsData) {
+//       showErrorDetails(errorMessage, errorDetailsData)
+//     }
+//   } finally {
+//     loading.value.firebaseTest = false
+//   }
+// }
 
-/*
-const fullSyncToFirebase = async () => {
-  loading.value.fullSync = true
-  try {
-    const { data: response, error } = await post('/debug/chat/full-sync', {
-      batch_size: 100,
-      prevent_duplicates: true
-    })
-    
-    if (error) {
-      console.error('Full Sync API Error:', error)
-      throw new Error(error.message || 'Firebase完整同步失敗')
-    }
-    
-    if (response.success) {
-      lastSyncResult.value = response.data
-      const message = `Firebase完整同步完成：處理 ${response.data.total_processed || 0} 筆，成功同步 ${response.data.synced || 0} 筆，跳過 ${response.data.skipped || 0} 筆，失敗 ${response.data.failed || 0} 筆`
-      showNotification('success', message)
-      
-      // 同步完成後自動刷新健康檢查
-      setTimeout(() => {
-        refreshHealthCheck()
-      }, 2000)
-    } else {
-      throw new Error(response.error || 'Firebase完整同步失敗')
-    }
-  } catch (error) {
-    console.error('Firebase完整同步失敗:', error)
-    
-    let errorMessage = '未知錯誤'
-    let errorDetailsData = null
-    
-    if (error.response) {
-      errorMessage = error.response.data?.error || error.response.statusText || '服務器錯誤'
-      errorDetailsData = error.response.data?.error_details || null
-      console.error('Full Sync Error Response:', error.response.data)
-    } else if (error.request) {
-      errorMessage = '無法連接到服務器，請檢查網路連接'
-      console.error('Full Sync Request Error:', error.request)
-    } else {
-      errorMessage = error.message || '請求處理失敗'
-      console.error('Full Sync General Error:', error.message)
-    }
-    
-    showNotification('error', 'Firebase完整同步失敗：' + errorMessage)
-    if (errorDetailsData) {
-      showErrorDetails(errorMessage, errorDetailsData)
-    }
-  } finally {
-    loading.value.fullSync = false
-  }
-}
-*/
+// const fullSyncToFirebase = async () => {
+//   loading.value.fullSync = true
+//   try {
+//     const { data: response, error } = await post('/debug/chat/full-sync', {
+//       batch_size: 100,
+//       prevent_duplicates: true
+//     })
+//     
+//     if (error) {
+//       console.error('Full Sync API Error:', error)
+//       throw new Error(error.message || 'Firebase完整同步失敗')
+//     }
+//     
+//     if (response.success) {
+//       lastSyncResult.value = response.data
+//       const message = `Firebase完整同步完成：處理 ${response.data.total_processed || 0} 筆，成功同步 ${response.data.synced || 0} 筆，跳過 ${response.data.skipped || 0} 筆，失敗 ${response.data.failed || 0} 筆`
+//       showNotification('success', message)
+//       
+//       // 同步完成後自動刷新健康檢查
+//       setTimeout(() => {
+//         refreshHealthCheck()
+//       }, 2000)
+//     } else {
+//       throw new Error(response.error || 'Firebase完整同步失敗')
+//     }
+//   } catch (error) {
+//     console.error('Firebase完整同步失敗:', error)
+//     
+//     let errorMessage = '未知錯誤'
+//     let errorDetailsData = null
+//     
+//     if (error.response) {
+//       errorMessage = error.response.data?.error || error.response.statusText || '服務器錯誤'
+//       errorDetailsData = error.response.data?.error_details || null
+//       console.error('Full Sync Error Response:', error.response.data)
+//     } else if (error.request) {
+//       errorMessage = '無法連接到服務器，請檢查網路連接'
+//       console.error('Full Sync Request Error:', error.request)
+//     } else {
+//       errorMessage = error.message || '請求處理失敗'
+//       console.error('Full Sync General Error:', error.message)
+//     }
+//     
+//     showNotification('error', 'Firebase完整同步失敗：' + errorMessage)
+//     if (errorDetailsData) {
+//       showErrorDetails(errorMessage, errorDetailsData)
+//     }
+//   } finally {
+//     loading.value.fullSync = false
+//   }
+// }
 
 // 頁面初始化
 onMounted(() => {
   // 檢查當前除錯模式狀態
-  // debugModeEnabled.value = localStorage.getItem('firebase_debug_mode') === 'true'
+  debugModeEnabled.value = localStorage.getItem('debug_panel_enabled') === 'true' // 修改為只檢查 debug_panel_enabled
   
   // 開發模式下顯示調試信息
   if (process.dev) {

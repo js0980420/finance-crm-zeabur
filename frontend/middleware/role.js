@@ -1,6 +1,5 @@
 export default defineNuxtRouteMiddleware(async (to) => {
-  try {
-    const authStore = useAuthStore()
+  const authStore = useAuthStore()
   
   // 等待初始化完成 - 使用單例模式，避免重複初始化
   if (process.client) {
@@ -84,10 +83,5 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (currentPath.startsWith('/sales/customers') && authStore.isSales) {
     // 可以在這裡添加額外的邏輯來過濾客戶資料
     // 例如：設置查詢參數或狀態來限制數據
-  }
-  } catch (error) {
-    console.error('Role middleware - useAuthStore failed:', error)
-    // If auth store is not available, redirect to login
-    return navigateTo('/auth/login')
   }
 })

@@ -83,7 +83,7 @@
             </h3>
           </div>
           <p class="text-red-700 text-sm">
-            資料同步與系統監控
+            Firebase診斷、資料同步與系統監控
           </p>
           <!-- Debug info -->
           <div v-if="showDebugInfo" class="mt-2 p-2 bg-red-100 rounded text-xs">
@@ -139,7 +139,8 @@ onMounted(() => {
     showDebugInfo.value = true
     
     // 檢查 localStorage 中的 debug 設定
-    isDebugMode.value = localStorage.getItem('debug_panel_enabled') === 'true'
+    // isDebugMode.value = localStorage.getItem('firebase_debug_mode') === 'true' || 
+    //                    localStorage.getItem('debug_panel_enabled') === 'true'
   }
 })
 </script>

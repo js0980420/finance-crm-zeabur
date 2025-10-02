@@ -416,7 +416,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useApi } from '~/composables/useApi'
-import { useAuthStore } from '~/stores/auth'
+import { useAuth } from '~/composables/useAuth'
 
 // 頁面元數據
 definePageMeta({
@@ -426,9 +426,8 @@ definePageMeta({
 })
 
 // Composables
-const authStore = useAuthStore()
-const { get, post } = useApi()
-const { success: showSuccess, error: showError } = useNotification()
+const { $api } = useApi()
+const { user } = useAuth()
 
 // 響應式數據
 const loading = ref(false)
@@ -452,10 +451,8 @@ const filters = ref({
 })
 
 // 計算屬性
-const user = computed(() => authStore.user)
 const canAccessLogs = computed(() => {
-  // Point 19: 移除管理員權限限制，所有登入用戶都可以查看日誌
-  return authStore.isLoggedIn && !!user.value
+  return user.value && (user.value.isAdmin || user.value.isManager || user.value.isExecutive)
 })
 
 // 搜尋防抖
@@ -494,25 +491,14 @@ const fetchLogs = async () => {
       params.append('date_from', daysAgo.toISOString().split('T')[0])
     }
 
-    const { data: response, error: apiError } = await get('/webhook/execution-logs', Object.fromEntries(params))
-
-    if (apiError) {
-      console.error('載入 webhook 日誌失敗:', apiError)
-      logs.value = []
-      if (apiError.status === 404) {
-        error.value = '日誌資料表尚未建立，請聯絡系統管理員'
-      } else {
-        error.value = `載入日誌失敗: ${apiError.message || '未知錯誤'}`
-      }
-      return
-    }
-
-    if (response && response.success) {
-      logs.value = response.data || []
+    const response = await $api(`/webhook/execution-logs?${params.toString()}`)
+    
+    if (response.data) {
+      logs.value = response.data
       pagination.value = response.pagination || {
         current_page: 1,
         per_page: 20,
-        total: (response.data || []).length,
+        total: response.data.length,
         last_page: 1
       }
       // Update statistics after loading logs
@@ -520,12 +506,20 @@ const fetchLogs = async () => {
     } else {
       logs.value = []
       pagination.value = null
-      error.value = response?.message || '載入日誌失敗'
     }
   } catch (error) {
     console.error('載入 webhook 日誌失敗:', error)
-    logs.value = []
-    error.value = `載入日誌失敗: ${error.message}`
+    // Check if it's a 404 response indicating table doesn't exist
+    if (error.response && error.response.status === 404) {
+      const errorData = error.response.data
+      if (errorData && errorData.setup_required) {
+        error.value = errorData.message || 'Database setup required for webhook logs'
+      } else {
+        error.value = '日誌資料表尚未建立，請聯絡系統管理員'
+      }
+    } else {
+      error.value = '載入日誌失敗'
+    }
   } finally {
     loading.value = false
   }
@@ -635,27 +629,9 @@ watch(autoRefresh, (newValue) => {
 
 // 生命週期
 onMounted(async () => {
-  // 確保認證已初始化
-  await authStore.waitForInitialization()
-
-  console.log('Settings/webhook-logs page - Auth debug info:', {
-    isLoggedIn: authStore.isLoggedIn,
-    isAdmin: authStore.isAdmin,
-    isManager: authStore.isManager,
-    isExecutive: authStore.isExecutive,
-    userRole: authStore.user?.role,
-    canAccessLogs: canAccessLogs.value
-  })
-
   if (canAccessLogs.value) {
     await fetchLogs()
     await fetchStatistics()
-  } else {
-    console.warn('User does not have access to webhook logs page:', {
-      isLoggedIn: authStore.isLoggedIn,
-      userRole: authStore.user?.role,
-      userRoles: authStore.user?.roles
-    })
   }
 })
 

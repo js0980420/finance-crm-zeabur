@@ -1,24 +1,10 @@
-export default defineNuxtPlugin(async () => {
+export default defineNuxtPlugin(() => {
   // Initialize auth store on client side only
   const authStore = useAuthStore()
-  const config = useRuntimeConfig()
 
-  // Point 3: Log skip auth mode status
-  console.log('Auth plugin - 跳過認證模式:', config.public.skipAuth)
-
-  // Initialize authentication state on app startup using singleton pattern
-  // This prevents race conditions with middleware
-  try {
-    const initSuccess = await authStore.waitForInitialization()
-    console.log('Auth plugin - 初始化結果:', initSuccess)
-    console.log('Auth plugin - 登入狀態:', authStore.isLoggedIn)
-
-    // Point 3: Additional logging for skip auth mode
-    if (config.public.skipAuth) {
-      console.log('Auth plugin - 跳過認證模式已啟用，模擬用戶:', authStore.user?.username)
-    }
-
-  } catch (error) {
-    console.warn('Auth plugin - 初始化失敗:', error)
-  }
+  // 僅初始化 store，不進行任何 API 調用
+  // 實際的初始化會在 middleware 中進行，使用本地 token 判斷
+  // 這樣可以避免在 plugin 階段調用後端 API 導致 503 錯誤
+  console.log('Auth plugin - Auth store initialized')
+  console.log('Auth plugin - 當前登入狀態:', authStore.isLoggedIn)
 })

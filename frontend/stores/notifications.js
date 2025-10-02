@@ -2,48 +2,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
   // Initialize with static times to prevent hydration mismatch
   const baseTime = new Date('2024-08-08T12:00:00Z')
   
-  const notifications = ref([
-    {
-      id: 1,
-      type: 'system',
-      title: 'notifications.system_update',
-      message: 'A new system update is available. Please update to get the latest features.',
-      time: new Date(baseTime.getTime() - 5 * 60 * 1000),
-      read: false,
-      priority: 'high',
-      icon: 'ExclamationCircleIcon'
-    },
-    {
-      id: 2,
-      type: 'user',
-      title: 'notifications.user_registration',
-      message: 'New user "john.doe@example.com" has registered.',
-      time: new Date(baseTime.getTime() - 10 * 60 * 1000),
-      read: false,
-      priority: 'medium',
-      icon: 'UserPlusIcon'
-    },
-    {
-      id: 3,
-      type: 'report',
-      title: 'notifications.daily_report',
-      message: 'Your daily analytics report is ready for review.',
-      time: new Date(baseTime.getTime() - 60 * 60 * 1000),
-      read: true,
-      priority: 'low',
-      icon: 'DocumentTextIcon'
-    },
-    {
-      id: 4,
-      type: 'security',
-      title: 'Security Alert',
-      message: 'Unusual login activity detected from a new device.',
-      time: new Date(baseTime.getTime() - 2 * 60 * 60 * 1000),
-      read: false,
-      priority: 'high',
-      icon: 'ShieldExclamationIcon'
-    }
-  ])
+  const notifications = ref([])
 
   const unreadCount = computed(() => 
     notifications.value.filter(n => !n.read).length
@@ -73,6 +32,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
       icon: notification.icon || 'InformationCircleIcon'
     }
     notifications.value.unshift(newNotification)
+    console.log('Notification added:', newNotification, 'Current unread count:', unreadCount.value)
     
     // Auto-remove after 30 seconds if it's a toast notification
     if (notification.autoRemove !== false) {
@@ -159,15 +119,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
       }
     ]
 
-    // Simulate notifications every 30 seconds to 2 minutes
-    setInterval(() => {
-      if (Math.random() > 0.7) { // 30% chance
-        const randomNotification = notificationTypes[
-          Math.floor(Math.random() * notificationTypes.length)
-        ]
-        addNotification(randomNotification)
-      }
-    }, 30000 + Math.random() * 90000) // 30s to 2min random interval
+    // Removed automatic simulation
   }
 
   return {

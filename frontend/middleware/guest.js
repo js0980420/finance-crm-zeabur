@@ -1,19 +1,10 @@
 export default defineNuxtRouteMiddleware(async (to) => {
-  try {
-    const authStore = useAuthStore()
-    const config = useRuntimeConfig()
-
+  const authStore = useAuthStore()
+  
   console.log('Guest middleware - 檢查認證狀態:', authStore.isLoggedIn)
   console.log('Guest middleware - 目標路徑:', to.path)
   console.log('Guest middleware - redirect 參數:', to.query.redirect)
-  console.log('Guest middleware - 跳過認證模式:', config.public.skipAuth)
-
-  // Point 3: Development convenience mode - skip guest restrictions if enabled
-  if (config.public.skipAuth) {
-    console.log('跳過認證模式已啟用，允許訪問所有頁面')
-    return
-  }
-
+  
   // 在客戶端初始化認證狀態（使用單例模式）
   if (process.client) {
     try {
@@ -35,10 +26,5 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }
     
     return navigateTo(redirectPath)
-  }
-  } catch (error) {
-    console.error('Guest middleware - useAuthStore failed:', error)
-    // If auth store is not available, allow guest access (stay on current page)
-    return
   }
 })

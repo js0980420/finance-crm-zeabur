@@ -79,15 +79,43 @@
     >
       <!-- Filter Controls -->
       <template #filters>
-        <select
-          v-model="statusFilter"
-          class="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">所有狀態</option>
-          <option v-for="(label, value) in getStatusOptions()" :key="value" :value="value">
-            {{ label }}
-          </option>
-        </select>
+        <div class="flex space-x-4">
+          <!-- 案件狀態篩選 -->
+          <select
+            v-model="caseStatusFilter"
+            class="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">所有案件狀態</option>
+            <option v-for="(label, value) in getCaseStatusDisplayOptions()" :key="value" :value="value">
+              {{ label }}
+            </option>
+          </select>
+
+          <!-- 來源管道篩選 -->
+          <select
+            v-model="channelFilter"
+            class="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">所有來源管道</option>
+            <option value="wp_form">網站表單</option>
+            <option value="line">官方LINE</option>
+            <option value="email">Email</option>
+            <option value="phone_call">電話</option>
+          </select>
+
+          <!-- 承辦業務篩選 (僅管理員可見) -->
+          <select
+            v-if="!authStore.isSales"
+            v-model="assignedUserFilter"
+            class="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">所有承辦業務</option>
+            <option value="unassigned">未分配</option>
+            <option v-for="user in salesUsers" :key="user.id" :value="user.id">
+              {{ user.name }}
+            </option>
+          </select>
+        </div>
       </template>
       
       <!-- Action Buttons -->
@@ -102,130 +130,90 @@
         </button>
       </template>
       
-      <!-- Customer Info Cell -->
-      <template #cell-customer_info="{ item }">
+      <!-- Case Status Display Cell -->
+      <template #cell-case_status_display="{ item }">
+        <span
+          class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+          :class="getCaseStatusDisplayClass(item.case_status_display)"
+        >
+          {{ getCaseStatusDisplayText(item.case_status_display) }}
+        </span>
+      </template>
+
+      <!-- Channel Cell -->
+      <template #cell-channel="{ item }">
+        <span class="text-sm text-gray-900">{{ getChannelText(item.channel) }}</span>
+      </template>
+
+      <!-- Name Cell -->
+      <template #cell-name="{ item }">
         <div class="flex items-center">
-          <div class="flex-shrink-0 w-10 h-10">
-            <img 
-              :src="`https://ui-avatars.com/api/?name=${item.name}&background=6366f1&color=fff`" 
+          <div class="flex-shrink-0 w-8 h-8">
+            <img
+              :src="`https://ui-avatars.com/api/?name=${item.name}&background=6366f1&color=fff&size=32`"
               :alt="item.name"
-              class="w-10 h-10 rounded-full"
+              class="w-8 h-8 rounded-full"
             />
           </div>
-          <div class="ml-4">
-            <div class="text-sm font-medium text-gray-900 ">
-              {{ item.name }}
+          <div class="ml-2">
+            <div class="text-sm font-medium text-gray-900">{{ item.name }}</div>
+          </div>
+        </div>
+      </template>
+
+      <!-- LINE Info Cell -->
+      <template #cell-line_info="{ item }">
+        <div class="space-y-1">
+          <div class="text-sm text-gray-900">
+            {{ item.line_display_name || '未設定' }}
+          </div>
+          <div class="flex items-center space-x-2">
+            <div v-if="item.line_user_id" class="flex items-center space-x-1">
+              <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span class="text-xs text-green-600">已綁定</span>
             </div>
-            <div class="text-sm text-gray-500 ">
-              {{ item.region || '未填寫地區' }}
+            <div v-else class="flex items-center space-x-1">
+              <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+              <span class="text-xs text-gray-500">未綁定</span>
             </div>
+            <span v-if="item.line_add_friend_id" class="text-xs text-gray-500">
+              ({{ item.line_add_friend_id }})
+            </span>
           </div>
         </div>
       </template>
-      
-      <!-- Contact Info Cell -->
-      <template #cell-contact_info="{ item }">
-        <div>
-          <div class="text-sm text-gray-900 ">{{ item.email || '未提供' }}</div>
-          <div class="text-sm text-gray-500 ">{{ item.phone }}</div>
-        </div>
+
+      <!-- Consultation Item Cell -->
+      <template #cell-consultation_item="{ item }">
+        <span class="text-sm text-gray-900">{{ item.consultation_item || '未填寫' }}</span>
       </template>
-      
-      <!-- Status Cell -->
-      <template #cell-status="{ item }">
-        <span 
-          class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-          :class="getStatusClass(item.status)"
-        >
-          {{ getStatusText(item.status) }}
-        </span>
-      </template>
-      
-      <!-- Case Status Cell -->
-      <template #cell-case_status="{ item }">
-        <span v-if="item.case_status" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" 
-              :class="getCaseStatusClass(item.case_status)">
-          {{ getCaseStatusText(item.case_status) }}
-        </span>
-        <span v-else class="text-xs text-gray-400">無案件</span>
-      </template>
-      
-      <!-- LINE Status Cell -->
-      <template #cell-line_status="{ item }">
-        <div class="flex items-center space-x-2">
-          <div v-if="item.line_user_id" class="flex items-center space-x-1">
-            <div class="w-2 h-2 bg-green-400 rounded-full"></div>
-            <span class="text-xs text-green-600 ">已綁定</span>
-          </div>
-          <div v-else class="flex items-center space-x-1">
-            <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
-            <span class="text-xs text-gray-500">未綁定</span>
-          </div>
-          <button 
-            v-if="item.line_user_id"
-            @click="checkLineFriend(item)"
-            class="text-xs text-blue-600 hover:text-blue-800"
-            title="檢查好友狀態"
-          >
-            檢查
-          </button>
-        </div>
-      </template>
-      
+
       <!-- Assigned User Cell -->
       <template #cell-assigned_user="{ item }">
-        <span>{{ item.assigned_user?.name || '未分配' }}</span>
+        <span class="text-sm text-gray-900">{{ item.assigned_user?.name || '未分配' }}</span>
       </template>
       
       <!-- Actions Cell -->
       <template #cell-actions="{ item }">
-        <div class="flex items-center space-x-2 justify-end">
-          <button 
-            @click="viewCustomer(item)"
-            class="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-200 group relative"
-            title="查看客戶詳情"
-          >
-            <EyeIcon class="w-4 h-4" />
-            <span class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-              查看
-            </span>
-          </button>
-          <button 
-            v-if="authStore.hasPermission('customer_management') || item.assigned_to === authStore.user?.id"
-            @click="editCustomer(item)"
-            class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-all duration-200 group relative"
+        <div class="flex justify-center">
+          <button
+            @click="openFullScreenEdit(item)"
+            class="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-all duration-200"
             title="編輯客戶資料"
           >
-            <PencilIcon class="w-4 h-4" />
-            <span class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-              編輯
-            </span>
-          </button>
-          <button 
-            v-if="authStore.hasPermission('customer_management')"
-            @click="openAssignModal(item)"
-            class="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-all duration-200 group relative"
-            title="指派負責業務"
-          >
-            <UserPlusIcon class="w-4 h-4" />
-            <span class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-              指派
-            </span>
-          </button>
-          <button 
-            v-if="authStore.hasPermission('customer_management')"
-            @click="confirmDeleteCustomer(item)"
-            class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200 group relative"
-            title="刪除客戶"
-          >
-            <TrashIcon class="w-4 h-4" />
-            <span class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-              刪除
-            </span>
+            編輯
           </button>
         </div>
       </template>
     </DataTable>
+
+    <!-- 全螢幕編輯彈窗 -->
+    <CustomerEditModal
+      :is-open="showFullScreenEdit"
+      :customer="editingCustomer"
+      @close="closeFullScreenEdit"
+      @save="handleFullScreenSave"
+    />
 
     <!-- 新增客戶模態窗口 -->
     <div 
@@ -588,6 +576,7 @@ import {
 // 明確匯入組件
 import StatsCard from '~/components/StatsCard.vue'
 import CustomerForm from '~/components/CustomerForm.vue'
+import CustomerEditModal from '~/components/customers/CustomerEditModal.vue'
 import DataTable from '~/components/DataTable.vue'
 import { formatters } from '~/utils/tableColumns'
 
@@ -611,7 +600,9 @@ const { getUsers } = useUsers()
 
 // 搜尋和篩選
 const searchQuery = ref('')
-const statusFilter = ref('')
+const caseStatusFilter = ref('')
+const channelFilter = ref('')
+const assignedUserFilter = ref('')
 
 // 載入狀態
 const loading = ref(false)
@@ -629,6 +620,7 @@ const customerStats = ref({
 // 模態窗口狀態
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
+const showFullScreenEdit = ref(false)
 const showViewModal = ref(false)
 const showAssignModal = ref(false)
 const editingCustomer = ref(null)
@@ -651,23 +643,61 @@ const selectedAssignUser = ref('')
 
 
 
-const getCaseStatusText = (status) => {
-  switch (status) {
-    case 'submitted': return '已送件'
-    case 'approved': return '已核准'
-    case 'rejected': return '已婉拒'
-    case 'disbursed': return '已撥款'
-    default: return status
+// Demo 案件狀態顯示相關函數
+const getCaseStatusDisplayText = (status) => {
+  const statusMap = {
+    'valid_customer': '有效客',
+    'invalid_customer': '無效客',
+    'customer_service': '客服',
+    'blacklist': '黑名單',
+    'approved_disbursed': '核准撥款',
+    'approved_undisbursed': '核准未撥',
+    'conditional_approval': '附條件',
+    'rejected': '婉拒',
+    'tracking_management': '追蹤管理'
   }
+  return statusMap[status] || '有效客'
 }
 
-const getCaseStatusClass = (status) => {
-  switch (status) {
-    case 'submitted': return 'bg-blue-100 text-blue-800'
-    case 'approved': return 'bg-green-100 text-green-800'
-    case 'rejected': return 'bg-red-100 text-red-800'
-    case 'disbursed': return 'bg-purple-100 text-purple-800'
-    default: return 'bg-gray-100 text-gray-800'
+const getCaseStatusDisplayClass = (status) => {
+  const statusClasses = {
+    'valid_customer': 'bg-green-100 text-green-800',
+    'invalid_customer': 'bg-red-100 text-red-800',
+    'customer_service': 'bg-blue-100 text-blue-800',
+    'blacklist': 'bg-gray-100 text-gray-800',
+    'approved_disbursed': 'bg-purple-100 text-purple-800',
+    'approved_undisbursed': 'bg-yellow-100 text-yellow-800',
+    'conditional_approval': 'bg-orange-100 text-orange-800',
+    'rejected': 'bg-red-100 text-red-800',
+    'tracking_management': 'bg-indigo-100 text-indigo-800'
+  }
+  return statusClasses[status] || 'bg-green-100 text-green-800'
+}
+
+// 來源管道文字轉換
+const getChannelText = (channel) => {
+  const channelMap = {
+    'wp_form': '網站表單',
+    'line': '官方LINE',
+    'email': 'Email',
+    'phone_call': '電話',
+    '': '未指定'
+  }
+  return channelMap[channel] || channel || '未指定'
+}
+
+// 案件狀態顯示選項
+const getCaseStatusDisplayOptions = () => {
+  return {
+    'valid_customer': '有效客',
+    'invalid_customer': '無效客',
+    'customer_service': '客服',
+    'blacklist': '黑名單',
+    'approved_disbursed': '核准撥款',
+    'approved_undisbursed': '核准未撥',
+    'conditional_approval': '附條件',
+    'rejected': '婉拒',
+    'tracking_management': '追蹤管理'
   }
 }
 
@@ -689,42 +719,62 @@ const customerForm = ref({
 const loadCustomers = async () => {
   loading.value = true
   loadError.value = null
-  
+
   try {
     const params = {}
-    
+
     // 添加搜尋參數
     if (searchQuery.value.trim()) {
       params.search = searchQuery.value.trim()
     }
-    
-    // 添加狀態過濾
-    if (statusFilter.value) {
-      params.status = statusFilter.value
+
+    // 添加案件狀態過濾
+    if (caseStatusFilter.value) {
+      params.case_status_display = caseStatusFilter.value
     }
-    
+
+    // 添加來源管道過濾
+    if (channelFilter.value) {
+      params.channel = channelFilter.value
+    }
+
+    // 添加承辦業務過濾
+    if (assignedUserFilter.value) {
+      if (assignedUserFilter.value === 'unassigned') {
+        params.assigned_to = null
+      } else {
+        params.assigned_to = assignedUserFilter.value
+      }
+    }
+
     const { data, error: apiError } = await getCustomers(params)
-    
+
     if (apiError) {
       loadError.value = apiError.message
       return
     }
-    
+
     customers.value = data.data || []
-    
-    // 計算統計數據
+
+    // 計算統計數據 - 基於案件狀態顯示
     const total = customers.value.length
-    const activeCount = customers.value.filter(c => ['new', 'contacted', 'interested'].includes(c.status)).length
-    const newCount = customers.value.filter(c => c.status === 'new').length
-    const convertedCount = customers.value.filter(c => c.status === 'converted').length
-    
+    const validCount = customers.value.filter(c => c.case_status_display === 'valid_customer').length
+    const invalidCount = customers.value.filter(c => c.case_status_display === 'invalid_customer').length
+    const approvedCount = customers.value.filter(c => ['approved_disbursed', 'approved_undisbursed'].includes(c.case_status_display)).length
+
     customerStats.value = {
       total,
-      active: activeCount,
-      new: newCount,
-      conversionRate: total > 0 ? Math.round((convertedCount / total) * 100) : 0
+      active: validCount,
+      new: customers.value.filter(c => {
+        const today = new Date()
+        const createdDate = new Date(c.created_at)
+        const diffTime = Math.abs(today - createdDate)
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        return diffDays <= 30
+      }).length,
+      conversionRate: total > 0 ? Math.round((approvedCount / total) * 100) : 0
     }
-    
+
   } catch (err) {
     loadError.value = '載入客戶數據失敗'
     console.error('Load customers error:', err)
@@ -750,66 +800,60 @@ const paginatedCustomers = computed(() => {
   return filteredCustomers.value.slice(start, end)
 })
 
-// Customer Table configuration
+// Customer Table configuration - Demo基本資訊顯示
 const customerTableColumns = computed(() => {
   const baseColumns = [
     {
-      key: 'customer_info',
-      title: '客戶資訊',
-      sortable: false,
-      width: '250px'
-    },
-    {
-      key: 'contact_info',
-      title: '聯絡方式',
-      sortable: false,
-      width: '200px'
-    },
-    {
-      key: 'status',
-      title: '狀態',
-      sortable: true,
-      width: '120px'
-    },
-    {
-      key: 'case_status',
+      key: 'case_status_display',
       title: '案件狀態',
       sortable: true,
       width: '120px'
     },
     {
-      key: 'line_status',
-      title: 'LINE 狀態',
-      sortable: false,
-      width: '120px'
-    },
-    {
-      key: 'updated_at',
-      title: '最後聯絡',
+      key: 'created_at',
+      title: '時間',
       sortable: true,
       width: '140px',
       formatter: formatters.date
-    }
-  ]
-  
-  // Add assigned user column if not sales staff
-  if (!authStore.isSales) {
-    baseColumns.push({
+    },
+    {
       key: 'assigned_user',
-      title: '負責業務',
+      title: '承辦業務',
       sortable: true,
       width: '120px'
-    })
-  }
-  
-  // Add actions column
-  baseColumns.push({
-    key: 'actions',
-    title: '操作',
-    sortable: false,
-    width: '200px'
-  })
-  
+    },
+    {
+      key: 'channel',
+      title: '來源管道',
+      sortable: true,
+      width: '120px'
+    },
+    {
+      key: 'name',
+      title: '姓名',
+      sortable: true,
+      width: '120px'
+    },
+    {
+      key: 'line_info',
+      title: 'LINE資訊',
+      sortable: false,
+      width: '180px'
+    },
+    {
+      key: 'consultation_item',
+      title: '諮詢項目',
+      sortable: true,
+      width: '150px'
+    },
+    {
+      key: 'actions',
+      title: '操作',
+      sortable: false,
+      width: '100px'
+    }
+  ]
+
   return baseColumns
 })
 
@@ -903,7 +947,7 @@ const checkLineFriend = async (customer) => {
 
 // 搜尋防抖動
 let searchTimeout = null
-watch([searchQuery, statusFilter], () => {
+watch([searchQuery, caseStatusFilter, channelFilter, assignedUserFilter], () => {
   if (searchTimeout) {
     clearTimeout(searchTimeout)
   }
@@ -962,6 +1006,39 @@ const viewCustomer = (customer) => {
 
 const editCustomer = (customer) => {
   openEditModal(customer)
+}
+
+// 全螢幕編輯相關函數
+const openFullScreenEdit = (customer) => {
+  editingCustomer.value = customer
+  showFullScreenEdit.value = true
+}
+
+const closeFullScreenEdit = () => {
+  showFullScreenEdit.value = false
+  editingCustomer.value = null
+}
+
+const handleFullScreenSave = async (formData) => {
+  updating.value = true
+  try {
+    const { data, error: apiError } = await updateCustomer(editingCustomer.value.id, formData)
+
+    if (apiError) {
+      await showError('更新客戶失敗：' + apiError.message)
+      return
+    }
+
+    await success('客戶更新成功')
+    closeFullScreenEdit()
+    loadCustomers() // 重新載入列表
+
+  } catch (err) {
+    console.error('Update customer error:', err)
+    await showError('更新客戶時發生錯誤')
+  } finally {
+    updating.value = false
+  }
 }
 
 const closeViewModal = () => {
@@ -1139,6 +1216,10 @@ const formatDate = (date) => {
 // 頁面載入時獲取數據
 onMounted(() => {
   loadCustomers()
+  // 載入業務人員列表用於篩選
+  if (!authStore.isSales) {
+    loadSalesUsers()
+  }
 })
 
 // 設定頁面標題
