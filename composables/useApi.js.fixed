@@ -1,0 +1,364 @@
+/**
+ * API Request Composable
+ * 處理所有HTTP請求的統一封裝
+ */
+import { mockCases } from '~/data/mockCases.js';
+
+export const useApi = () => {
+  const config = useRuntimeConfig()
+  const router = useRouter()
+  const authStore = useAuthStore() // 確保 authStore 在這裡被引入
+  
+  // 智能環境檢測
+  const getApiBaseUrl = () => {
+    // 強制為 Demo 網站使用模擬 API
+    if (process.client && window.location.origin === 'https://crm-nuxt-demo.pages.dev') {
+      return '/mock-api';
+    }
+    
+    // 如果 runtimeConfig.public.apiBaseUrl 已經明確設定為 '/mock-api'，則優先使用
+    if (config.public.apiBaseUrl === '/mock-api') {
+      return '/mock-api';
+    }
+
+    // Point 80: 修復 vite proxy 被繞過的問題
+    // 在開發環境下使用相對路徑以利用 vite proxy
+    // 這樣可以避免 CORS 問題
+    if (process.dev && process.env.NODE_ENV === 'development') {
+      // 開發環境使用相對路徑，讓 vite proxy 處理
+      return ''  // 使用空字串，讓 endpoint 直接作為相對路徑
+    }
+
+    // 優先使用環境變數設定（生產環境）
+    if (config.public.apiBaseUrl) {
+      return config.public.apiBaseUrl
+    }
+    // 如果 apiBaseUrl 未設定，則拋出錯誤，避免發送至錯誤的 API
+    throw new Error('API base URL is not configured in runtimeConfig.public.apiBaseUrl');
+  }
+
+  const baseURL = getApiBaseUrl()
+
+  // 判斷是否為模擬模式 - 現在基於最終計算出的 baseURL
+  const isMockMode = baseURL === '/mock-api'; 
+
+  /**
+   * 通用API請求方法
+   */
+  const apiRequest = async (method, endpoint, data = null, options = {}) => {
+    // 如果是模擬模式，則直接返回模擬數據
+    if (isMockMode) {
+      console.warn(`[Mock API] Intercepted ${method} request to ${endpoint}. Returning mock data.`);
+      // 這裡可以根據 endpoint 和 method 返回不同的模擬數據
+      // 為了登入頁面，我們模擬一個成功的用戶數據
+      if (endpoint === '/auth/me') {
+        return {
+          data: {
+            success: true,
+            data: {
+              user: {
+                id: 1,
+                name: 'Admin User (Mock)',
+                email: 'admin@finance-crm.com',
+                roles: [{ name: 'admin' }],
+                avatar: 'https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff',
+              },
+              token: 'mock-token-for-admin'
+            }
+          },
+          error: null
+        };
+      }
+
+      // Mock login API
+      if (endpoint === '/auth/login') {
+        return {
+          data: {
+            success: true,
+            access_token: 'mock-jwt-token-for-manual-login-' + Date.now(),
+            user: {
+              id: 2,
+              name: 'Demo User (Mock)',
+              email: 'demo@finance-crm.com',
+              roles: [{ name: 'staff' }],
+              avatar: 'https://ui-avatars.com/api/?name=Demo&background=0ea5e9&color=fff',
+            }
+          },
+          error: null
+        };
+      }
+
+      // Mock cases API
+      if (endpoint.startsWith('/cases')) {
+        console.warn(`[Mock API] Providing mock data for ${endpoint}`);
+
+        // 處理分頁參數
+        let filteredCases = [...mockCases];
+        const params = new URLSearchParams(endpoint.split('?')[1] || '');
+        const page = parseInt(params.get('page')) || 1;
+        const perPage = parseInt(params.get('per_page')) || 15;
+        const caseStatus = params.get('case_status');
+
+        // 狀態篩選
+        if (caseStatus) {
+          filteredCases = filteredCases.filter(c => c.case_status === caseStatus);
+        }
+
+        // 分頁處理
+        const start = (page - 1) * perPage;
+        const end = start + perPage;
+        const paginatedCases = filteredCases.slice(start, end);
+
+        return {
+          data: {
+            success: true,
+            data: paginatedCases,
+            total: filteredCases.length,
+            per_page: perPage,
+            current_page: page,
+            last_page: Math.ceil(filteredCases.length / perPage),
+            meta: {
+              total: filteredCases.length,
+              per_page: perPage,
+              current_page: page,
+              last_page: Math.ceil(filteredCases.length / perPage)
+            }
+          },
+          error: null
+        };
+      }
+
+      // Mock contact schedules APIs
+      if (endpoint.includes('/contact-schedules')) {
+        if (endpoint.includes('/overdue/list') || endpoint.includes('/reminders/list') || endpoint.includes('/today/list')) {
+          return {
+            data: {
+              success: true,
+              data: []
+            },
+            error: null
+          };
+        }
+
+        if (endpoint.includes('/calendar/data')) {
+          return {
+            data: {
+              success: true,
+              data: {}
+            },
+            error: null
+          };
+        }
+      }
+
+      // Mock customers API
+      if (endpoint === '/customers') {
+        return {
+          data: {
+            success: true,
+            data: {
+              data: [
+                { id: 1, name: 'Mock Customer 1', phone: '09xx-xxxxxx' },
+                { id: 2, name: 'Mock Customer 2', phone: '09xx-xxxxxx' }
+              ]
+            }
+          },
+          error: null
+        };
+      }
+
+      // Mock leads API to prevent crash on tracking page
+      if (endpoint.startsWith('/leads')) {
+        return {
+          data: {
+            success: true,
+            data: {
+              data: [],
+              total: 0,
+              per_page: 15,
+              current_page: 1
+            }
+          },
+          error: null
+        };
+      }
+
+      // 其他請求返回一個通用的成功響應
+      return {
+        data: {
+          success: true,
+          message: 'Mock API 請求成功',
+          // 確保返回的數據結構與實際 API 響應一致，避免前端錯誤
+          data: {},
+          items: [],
+          meta: { total: 0, per_page: 15, currentPage: 1, lastPage: 1 }
+        },
+        error: null
+      };
+    }
+
+    // Point 3: Handle skip auth mode with mock token
+    let token = null
+    if (config.public.skipAuth) {
+      token = 'mock-token-for-skip-auth' // 提供一個模擬 token
+    } else {
+      token = authStore.token // 從 authStore 獲取真實 token
+    }
+
+    // Define requestOptions outside try block so it's accessible in catch
+    const requestOptions = {
+      method: method.toUpperCase(),
+      baseURL,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...options.headers
+      },
+      ...options
+    }
+
+    try {
+      // 添加請求資料
+      if (data && ['POST', 'PUT', 'PATCH'].includes(requestOptions.method)) {
+        requestOptions.body = JSON.stringify(data)
+      } else if (data && requestOptions.method === 'GET') {
+        // 將參數轉換為查詢字串
+        const params = new URLSearchParams(data)
+        endpoint += `?${params.toString()}`
+      }
+
+      // Point 80: 處理相對路徑和完整 URL
+      // 如果 baseURL 是空字串（開發環境），使用相對路徑
+      // 否則使用完整 URL
+      const fetchUrl = baseURL ? endpoint : `/api${endpoint}`
+      const response = await $fetch(fetchUrl, requestOptions)
+      return { data: response, error: null }
+
+    } catch (error) {
+      // Point 80: 修正錯誤日誌的 URL 顯示
+      const actualUrl = baseURL ? `${baseURL}${endpoint}` : `/api${endpoint}`
+
+      // Point 81: Suppress error logging for specific endpoints that may fail for unauthenticated users
+      const silentEndpoints = [
+        '/contact-schedules/reminders/list',
+        '/contact-schedules/overdue/list',
+        '/contact-schedules/today/list'
+      ]
+
+      const shouldSilence = silentEndpoints.some(path => endpoint.includes(path)) && error.status === 401
+
+      if (!shouldSilence) {
+        console.error(`API Request Error [${method} ${endpoint}]:`, {
+          status: error.status,
+          message: error.message,
+          data: error.data,
+          baseURL: baseURL || '(using proxy)',
+          fullURL: actualUrl,
+          headers: requestOptions.headers,
+          credentials: requestOptions.credentials
+        })
+      }
+
+      // 處理認證錯誤
+      if (error.status === 401) {
+        // Point 3: Skip auth error handling in development convenience mode
+        if (config.public.skipAuth) {
+          console.log('跳過認證模式下忽略 401 錯誤，返回模擬成功回應')
+          // Return a mock success response for skip auth mode
+          return {
+            data: {
+              message: '模擬回應 (跳過認證模式)',
+              user: null,
+              mock_response: true
+            },
+            error: null
+          }
+        }
+
+        // Only redirect to login for endpoints that are not expected to fail for unauthenticated users
+        if (!shouldSilence) {
+          console.warn('Authentication failed - clearing session and redirecting to login')
+
+          // Token過期，清除 sessionStorage 並重導向到登入頁
+          if (process.client) {
+            sessionStorage.removeItem('user-profile')
+            // 清除舊的 localStorage 資料（向後相容）
+            localStorage.removeItem('auth-token')
+            localStorage.removeItem('admin-template-user')
+
+            // 在生產環境下，檢查cookie狀況
+            if (document.cookie.includes('auth-token')) {
+              console.warn('Auth token cookie still exists but API returned 401')
+            } else {
+              console.warn('No auth token cookie found')
+            }
+          }
+
+          await router.push('/auth/login')
+        }
+      }
+
+      return { 
+        data: null, 
+        error: {
+          status: error.status,
+          message: error.data?.message || error.message || '請求失敗',
+          error: error.data?.error || error.message || '請求失敗',
+          errors: error.data?.errors || null,
+          debug_info: error.data?.debug_info || null,
+          debug: process.dev ? {
+            baseURL: baseURL || '(using proxy)',
+            fullURL: actualUrl,
+            method: requestOptions.method,
+            error_response: error.data
+          } : null
+        }
+      }
+    }
+  }
+
+  /**
+   * GET請求
+   */
+  const get = async (endpoint, params = {}, options = {}) => {
+    return await apiRequest('GET', endpoint, params, options)
+  }
+
+  /**
+   * POST請求
+   */
+  const post = async (endpoint, data = {}, options = {}) => {
+    return await apiRequest('POST', endpoint, data, options)
+  }
+
+  /**
+   * PUT請求
+   */
+  const put = async (endpoint, data = {}, options = {}) => {
+    return await apiRequest('PUT', endpoint, data, options)
+  }
+
+  /**
+   * DELETE請求
+   */
+  const del = async (endpoint, options = {}) => {
+    return await apiRequest('DELETE', endpoint, null, options)
+  }
+
+  /**
+   * PATCH請求
+   */
+  const patch = async (endpoint, data = {}, options = {}) => {
+    return await apiRequest('PATCH', endpoint, data, options)
+  }
+
+  return {
+    apiRequest,
+    get,
+    post,
+    put,
+    del,
+    patch
+  }
+}
