@@ -25,7 +25,6 @@ use App\Http\Controllers\Api\LineUserTestController;
 use App\Http\Controllers\Api\WebsiteController;
 use App\Http\Controllers\Api\WebsiteFieldMappingController;
 use App\Http\Controllers\Api\CustomerContactScheduleController;
-use App\Http\Controllers\Api\LogController;
 
 /*
 |--------------------------------------------------------------------------
@@ -683,17 +682,6 @@ Route::middleware(['auth:api'])->group(function () {
         
         // Extended Firebase Health Checks
         Route::get('/firebase/health-extended', [ChatController::class, 'checkFirebaseHealth']);
-
-        // Application Log Management (Point 16 - 錯誤日誌查看)
-        Route::prefix('logs')->group(function () {
-            Route::get('/errors', [LogController::class, 'getErrorLogs']);
-            Route::get('/stats', [LogController::class, 'getErrorStats']);
-            Route::get('/critical', [LogController::class, 'getCriticalErrors']);
-            Route::get('/patterns', [LogController::class, 'getPatternAnalysis']);
-            Route::get('/health', [LogController::class, 'getSystemHealth']);
-            Route::post('/alerts/check', [LogController::class, 'checkCriticalAlerts']);
-            Route::post('/cleanup', [LogController::class, 'cleanOldLogs'])->middleware('role:admin');
-        });
     });
     
     // Version Management - Available to all authenticated users
@@ -772,30 +760,24 @@ Route::middleware(['auth:api'])->group(function () {
         Route::post('/field-mappings/system-fields', [WebsiteFieldMappingController::class, 'addSystemField']);
     });
     
-    // Point 10: DEBUG ROUTE - Test if routes work at all
-    Route::get('/debug-test-route', function() {
-        file_put_contents('/tmp/debug_route_test.txt', 'DEBUG ROUTE CALLED AT ' . date('Y-m-d H:i:s'));
-        return response()->json(['message' => 'Debug route works', 'time' => date('Y-m-d H:i:s')]);
-    });
-
     // Leads (pending cases)
     Route::get('/leads', [LeadController::class, 'index']);
     Route::get('/leads/submittable', [LeadController::class, 'submittable']);
-    Route::get('/leads/case-status-options', [LeadController::class, 'getCaseStatusOptions']);
     Route::get('/leads/{lead}', [LeadController::class, 'show']);
     Route::put('/leads/{lead}', [LeadController::class, 'update']);
-    Route::patch('/leads/{lead}/case-status', [LeadController::class, 'updateCaseStatus']);
     Route::delete('/leads/{lead}', [LeadController::class, 'destroy']);
-
+    
     // Point 37: LINE user name update for leads
     Route::put('/leads/{lead}/line-name', [LeadController::class, 'updateLineUserName']);
 
     // Cases
     Route::get('/cases', [CaseController::class, 'index']);
-    Route::get('/cases/status-options', [CaseController::class, 'getCaseStatusOptions']);
+    Route::post('/cases', [CaseController::class, 'store']); // 直接創建案件
+    Route::get('/cases/status-summary', [CaseController::class, 'statusSummary']); // 狀態統計
     Route::get('/cases/{case}', [CaseController::class, 'show']);
     Route::put('/cases/{case}', [CaseController::class, 'update']);
-    Route::patch('/cases/{case}/status', [CaseController::class, 'updateCaseStatus']);
+    Route::put('/cases/{case}/assign', [CaseController::class, 'assign']); // 指派案件
+    Route::delete('/cases/{case}', [CaseController::class, 'destroy']); // 刪除案件
     Route::post('/customers/{customer}/cases', [CaseController::class, 'storeForCustomer']);
 
     // Bank Records (for negotiated cases view)
