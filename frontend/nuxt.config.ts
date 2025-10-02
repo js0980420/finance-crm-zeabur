@@ -18,23 +18,15 @@ export default defineNuxtConfig({
       // Local development (NODE_ENV=development): use proxy '/api'
       // Develop/Production environments: use direct API URL
       apiBaseUrl: process.env.NODE_ENV === 'development' ? '/api' : (process.env.NUXT_PUBLIC_API_BASE_URL || 'https://dev-finance.mercylife.cc/api'),
-      // Point 3: Development convenience mode - skip authentication
-      // When set to 'true', automatically simulate admin login without manual authentication
-      // Recommended for development only, should be 'false' in production
-      skipAuth: process.env.NUXT_SKIP_AUTH === 'true',
       // Firebase configuration
-      firebaseApiKey: process.env.NUXT_FIREBASE_API_KEY,
-      firebaseDatabaseUrl: process.env.NUXT_FIREBASE_DATABASE_URL || 'https://finance0810new-default-rtdb.asia-southeast1.firebasedatabase.app/',
-      firebaseProjectId: process.env.NUXT_FIREBASE_PROJECT_ID || 'finance0810new',
-      firebaseMessagingSenderId: process.env.NUXT_FIREBASE_MESSAGING_SENDER_ID,
-      firebaseAppId: process.env.NUXT_FIREBASE_APP_ID
+      // firebaseApiKey: process.env.NUXT_FIREBASE_API_KEY,
+      // firebaseDatabaseUrl: process.env.NUXT_FIREBASE_DATABASE_URL || 'https://finance0810new-default-rtdb.asia-southeast1.firebasedatabase.app/',
+      // firebaseProjectId: process.env.NUXT_FIREBASE_PROJECT_ID || 'finance0810new',
+      // firebaseMessagingSenderId: process.env.NUXT_FIREBASE_MESSAGING_SENDER_ID,
+      // firebaseAppId: process.env.NUXT_FIREBASE_APP_ID
     }
   },
-  // Development server configuration
-  devServer: {
-    port: 3301,
-    host: '0.0.0.0'
-  },
+  // Development server configuration removed - using package.json port setting (9122)
   // Development configuration
   vite: {
     server: {
@@ -45,7 +37,7 @@ export default defineNuxtConfig({
       // Develop/Production environments bypass this proxy and use direct API calls
       proxy: {
         '/api': {
-          target: 'http://localhost:9221',
+          target: process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:9222' : 'http://backend:8000',
           changeOrigin: true,
           secure: false,
           ws: true, // Support WebSocket
@@ -62,15 +54,15 @@ export default defineNuxtConfig({
       rollupOptions: {
         external: (id) => {
           // Firebase modules should be treated as external in production
-          if (id.includes('firebase/')) {
-            return false // Let rollup bundle firebase modules instead of treating them as external
-          }
+          // if (id.includes('firebase/')) {
+          //   return false // Let rollup bundle firebase modules instead of treating them as external
+          // }
           return false
         }
       }
     },
     optimizeDeps: {
-      include: ['firebase/app', 'firebase/database']
+      // include: ['firebase/app', 'firebase/database']
     }
   },
   // Enable hot module replacement in development
