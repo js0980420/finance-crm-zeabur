@@ -1,6 +1,12 @@
 export default defineNuxtRouteMiddleware(async (to) => {
+  // 🚀 開發模式：直接放行
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🚀 開發模式：跳過權限檢查')
+    return
+  }
+
   const authStore = useAuthStore()
-  
+
   // 等待初始化完成 - 使用單例模式，避免重複初始化
   if (process.client) {
     try {
@@ -68,6 +74,12 @@ export default defineNuxtRouteMiddleware(async (to) => {
     )
 
     if (!hasPermission) {
+      // 為了開發方便，在開發模式下允許訪問 /cases 頁面
+      if (process.env.NODE_ENV === 'development' && currentPath.startsWith('/cases')) {
+        console.warn('開發模式下，繞過 /cases 頁面權限檢查。')
+        return
+      }
+
       // 根據用戶角色重定向到合適的頁面
       if (authStore.isSales) {
         return navigateTo('/sales/customers')

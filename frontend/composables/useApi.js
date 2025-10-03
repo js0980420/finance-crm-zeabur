@@ -12,9 +12,9 @@ export const useApi = () => {
     // Point 80: 修復 vite proxy 被繞過的問題
     // 在開發環境下使用相對路徑以利用 vite proxy
     // 這樣可以避免 CORS 問題
-    if (process.dev && process.env.NODE_ENV === 'development') {
-      // 開發環境使用相對路徑，讓 vite proxy 處理
-      return ''  // 使用空字串，讓 endpoint 直接作為相對路徑
+    if (process.dev || import.meta.env.DEV) {
+      // 開發環境使用空字串，讓 endpoint 加上 /api 前綴
+      return ''
     }
 
     // 優先使用環境變數設定（生產環境）

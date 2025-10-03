@@ -1,14 +1,27 @@
 export const useSidebarBadges = () => {
   const { get } = useApi()
   
-  // Reactive state for badges
+  // Reactive state for badges (根據案件狀態動態計數)
   const badges = ref({
+    // 網路進線
     pending: 0,
-    intake: 0,
-    disbursed: 0,
-    tracking: 0,
+
+    // 網路進線管理
+    valid_customer: 0,
+    invalid_customer: 0,
+    customer_service: 0,
     blacklist: 0,
-    negotiated: 0,
+
+    // 送件管理
+    approved_disbursed: 0,
+    approved_undisbursed: 0,
+    conditional_approval: 0,
+    declined: 0,
+
+    // 追蹤管理
+    tracking: 0,
+
+    // 其他
     contact_reminders: 0
   })
   
@@ -17,8 +30,8 @@ export const useSidebarBadges = () => {
   // Get count for a specific status
   const getCount = async (status) => {
     try {
-      const { data, error } = await get('/leads', { 
-        status: status,
+      const { data, error } = await get('/leads', {
+        case_status: status,  // 使用 case_status 參數
         page: 1,
         per_page: 1
       })
@@ -70,29 +83,34 @@ export const useSidebarBadges = () => {
     }
   }
   
-  // Get all badge counts
+  // Get all badge counts (根據所有案件狀態) - 優化為只在需要時載入
   const refreshAllBadges = async () => {
     if (loading.value) return
-    
+
     loading.value = true
     try {
-      const [pending, intake, disbursed, tracking, blacklist, negotiated, contactReminders] = await Promise.all([
+      // 只獲取最重要的幾個徽章，減少 API 請求
+      const [
+        pending,
+        tracking,
+        contactReminders
+      ] = await Promise.all([
         getCount('pending'),
-        getCount('intake'),
-        getCount('disbursed'),
         getCount('tracking'),
-        getCount('blacklist'),
-        getCount('negotiated'),
         getContactRemindersCount()
       ])
-      
+
       badges.value = {
         pending,
-        intake,
-        disbursed,
+        valid_customer: 0,  // 延遲載入，需要時才獲取
+        invalid_customer: 0,
+        customer_service: 0,
+        blacklist: 0,
+        approved_disbursed: 0,
+        approved_undisbursed: 0,
+        conditional_approval: 0,
+        declined: 0,
         tracking,
-        blacklist,
-        negotiated,
         contact_reminders: contactReminders
       }
     } catch (err) {

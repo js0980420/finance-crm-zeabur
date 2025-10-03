@@ -1,41 +1,19 @@
 export default defineNuxtRouteMiddleware(async (to, from) => {
+  // 🚀 開發模式：伺服器端和客戶端都跳過登入驗證
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🚀 開發模式：跳過登入驗證')
+    return
+  }
+
   const authStore = useAuthStore()
 
-  // 在開發環境中，如果目標頁面不是登入頁，直接模擬登入並跳轉
-  // if (process.env.NODE_ENV !== 'production' && to.path !== '/auth/login') {
-  //   console.log('Development mode: Bypassing auth middleware, direct login.')
-  //   const mockUser = {
-  //     id: 1,
-  //     username: 'admin',
-  //     email: 'admin@example.com',
-  //     name: '系統管理員',
-  //     roles: ['admin'],
-  //     permissions: ['all_access'],
-  //     is_admin: true,
-  //     is_manager: false,
-  //     token: 'mock-jwt-token-for-development'
-  //   }
-  //   authStore.setUser(mockUser)
-  //   if (process.client) {
-  //     sessionStorage.setItem('user-profile', JSON.stringify(mockUser))
-  //   }
-
-  //   // 確保狀態更新後再重定向
-  //   await nextTick()
-  //   if (to.path === '/' || to.path === '/auth/login') {
-  //     return navigateTo('/dashboard/analytics') // 重定向到儀表板頁面
-  //   } else {
-  //     return // 允許導航到其他目標頁面
-  //   }
-  // }
+  // 如果是登入頁面，直接允許通過，不執行任何檢查
+  if (to.path === '/auth/login' || to.path === '/auth/register') {
+    return
+  }
 
   console.log('Auth middleware - 來源頁面:', from?.path, '目標頁面:', to.path)
   console.log('Auth middleware - 當前登入狀態:', authStore.isLoggedIn)
-
-  // 如果是登入頁面，直接允許通過
-  if (to.path === '/auth/login') {
-    return
-  }
 
   // 如果已經登入，直接允許通過（避免重複驗證）
   if (authStore.isLoggedIn) {

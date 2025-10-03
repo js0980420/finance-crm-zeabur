@@ -1,5 +1,5 @@
 import { ref, computed, reactive } from 'vue'
-import { useMockDataStore } from '~/stores/mockData'
+import { useApi } from './useApi'
 import { useNotification } from '~/composables/useNotification'
 import { useSidebarBadges } from '~/composables/useSidebarBadges'
 
@@ -11,7 +11,8 @@ export const useCaseManagement = () => {
   const config = useRuntimeConfig()
   const { success, error: showError } = useNotification()
   const { refreshBadges } = useSidebarBadges()
-  const mockDataStore = useMockDataStore()
+  const authStore = useAuthStore()
+  const { get, post, put, patch, delete: remove } = useApi()
 
   // --- State for Tracking Page (New) ---
   const state = reactive({
@@ -42,7 +43,7 @@ export const useCaseManagement = () => {
 
     // Filter by status
     if (state.selectedStatus) {
-      tempCases = tempCases.filter(caseItem => caseItem.status === state.selectedStatus);
+      tempCases = tempCases.filter(caseItem => caseItem.case_status === state.selectedStatus);
     }
     return tempCases;
   });
@@ -81,7 +82,7 @@ export const useCaseManagement = () => {
       name: c.customer_name,
       case_type: c.payload?.['貸款需求'] || '未知', // Assuming case_type comes from payload
       application_date: new Date(c.created_at).toLocaleDateString('zh-TW'),
-      status: c.case_status || '追蹤中', // Assuming status is case_status
+      case_status: c.case_status || '追蹤中', // Assuming status is case_status
       original_case: c // Keep original case data if needed for other operations
     }));
     state.currentPage = 1; // Reset to first page on new fetch
@@ -226,41 +227,35 @@ export const useCaseManagement = () => {
   /**
    * 載入指定狀態的案件
    */
-  const loadCasesByStatus = async (status) => {
+  const loadCasesByStatus = async (caseStatus, searchQuery = '', assignedTo = null) => {
     console.log('=== loadCasesByStatus 開始 ===')
-    console.log('查詢狀態:', status)
-    console.log('🔍 實際 config.public.apiBaseUrl:', config.public.apiBaseUrl)
-    console.log('🔍 比較結果:', config.public.apiBaseUrl === '/mock-api')
-    console.log('💡 強制使用 Mock API 模式進行測試')
-
-    // 臨時強制使用 Mock API 進行測試
-    if (true) {
-      console.log('使用 Mock API 模式查詢案件')
-      console.log('mockDataStore.cases 總數:', mockDataStore.cases.length)
-      console.log('所有案件:', mockDataStore.cases.map(c => ({ id: c.id, name: c.customer_name, status: c.case_status || c.status })))
-
-      const filteredCases = mockDataStore.cases.filter(caseItem => {
-        const caseStatus = caseItem.case_status || caseItem.status || 'pending'
-        const matches = caseStatus === status
-        console.log(`案件 ${caseItem.id} (${caseItem.customer_name}): status=${caseStatus}, matches=${matches}`)
-        return matches
-      })
-
-      console.log(`過濾後的 ${status} 案件:`, filteredCases.map(c => ({ id: c.id, name: c.customer_name, status: c.case_status || c.status })))
-      console.log('=== loadCasesByStatus 完成 (Mock) ===')
-      return filteredCases
-    }
+    console.log('查詢狀態:', caseStatus)
 
     // API 模式邏輯
     console.log('使用真實 API 模式查詢案件')
-    const { get } = useApi()
-    const { data, error } = await get('/cases', { case_status: status, per_page: 1000 })
+    const { data, error } = await get('/cases', { case_status: caseStatus, per_page: 1000 })
     if (error) {
-      console.error('❌ 載入案件失敗:', error)
+      console.error('載入案件失敗:', error)
       return []
     }
-    console.log('=== loadCasesByStatus 完成 (API) ===')
-    return data.items || []
+    const apiCases = data.items || []
+
+    // 計算並返回過濾後的案件
+    console.log('API 模式載入的案件總數:', apiCases.length)
+    console.log('所有案件 (API 模式): ', apiCases.map(c => ({ id: c.id, customer_name: c.customer_name, case_status: c.case_status })))
+
+    const filteredCases = apiCases.filter(caseItem => {
+      const matchesStatus = (!caseStatus || caseItem.case_status === caseStatus)
+      const matchesSearch = !searchQuery || 
+        caseItem.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        caseItem.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        caseItem.mobile_phone?.includes(searchQuery) ||
+        caseItem.line_id?.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesAssignee = !assignedTo || assignedTo === 'all' || (assignedTo === 'null' ? !caseItem.assigned_to : caseItem.assigned_to === parseInt(assignedTo))
+      return matchesStatus && matchesSearch && matchesAssignee
+    })
+
+    return filteredCases
   }
 
   /**
@@ -271,23 +266,23 @@ export const useCaseManagement = () => {
     console.log('接收到的 caseData:', caseData)
     console.log('使用真實 API 模式新增案件')
 
-    // 直接使用標準 API 欄位名稱，完全匹配資料庫結構
+    // 統一使用標準欄位名稱，完全匹配後端 API 和資料庫結構
     const apiPayload = {
       customer_name: caseData.customer_name,
-      customer_phone: caseData.phone || caseData.mobile_phone || caseData.customer_phone,
-      customer_email: caseData.email || caseData.customer_email,
-      consultation_item: caseData.consultation_items || caseData.loan_purpose || caseData.consultation_item,  // 前端用 consultation_items，資料庫用 consultation_item
-      demand_amount: caseData.demand_amount,
-      channel: caseData.source_channel || caseData.channel,  // 前端用 source_channel，資料庫用 channel
-      website_source: caseData.website_domain || caseData.website || caseData.website_source,  // 前端用 website_domain，資料庫用 website_source
+      phone: caseData.phone,
+      email: caseData.email,
+      loan_purpose: caseData.loan_purpose,
+      channel: caseData.channel,  // 必填欄位
+      website: caseData.website,
       assigned_to: caseData.assigned_to,
-      status: caseData.case_status || caseData.status || 'pending',
+      case_status: caseData.case_status || 'pending',
       line_id: caseData.line_id,
-      line_display_name: caseData.line_name || caseData.line_user_info?.display_name,  // 前端用 line_name，資料庫用 line_display_name
+      line_display_name: caseData.line_display_name,
+      business_level: caseData.business_level,
       notes: caseData.notes
     }
 
-    // 移除值為 null、undefined 或空字串的欄位
+    // 移除值為 null, undefined 或空字串的欄位
     // 避免傳送空字串給後端造成驗證錯誤
     Object.keys(apiPayload).forEach(key => {
       const value = apiPayload[key]
@@ -298,16 +293,15 @@ export const useCaseManagement = () => {
 
     console.log('API payload (標準格式):', apiPayload)
 
-    const { post } = useApi()
-    const { data, error } = await post('/cases', apiPayload)
+    const { data, error } = await post('/leads', apiPayload)
     if (error) {
-      console.log('❌ API 新增案件失敗:', error)
+      console.log('❌ API 新增進線失敗:', error)
       console.log('後端驗證錯誤詳情:', error.errors)
       console.log('錯誤訊息:', error.message)
       return { success: false, error }
     }
     await refreshBadges()
-    console.log('✅ API 新增案件成功:', data)
+    console.log('✅ API 新增進線成功:', data)
     return { success: true, data }
   }
 
@@ -316,31 +310,7 @@ export const useCaseManagement = () => {
    */
   const updateCaseStatus = async (caseId, newStatus, shouldNavigate = true) => {
     try {
-      if (config.public.apiBaseUrl === '/mock-api') {
-        const updatedCase = mockDataStore.updateCaseStatus(caseId, newStatus)
-        if (updatedCase) {
-          const statusLabel = CASE_STATUS_OPTIONS.find(opt => opt.value === newStatus)?.label
-          success(`案件狀態已更新為：${statusLabel}`)
-
-          await refreshBadges()
-
-          // 導航到對應頁面
-          if (shouldNavigate) {
-            const targetRoute = STATUS_ROUTE_MAP[newStatus]
-            if (targetRoute && targetRoute !== useRoute().path) {
-              await navigateTo(targetRoute)
-            }
-          }
-
-          return { success: true, data: updatedCase }
-        } else {
-          showError('更新案件狀態失敗')
-          return { success: false, error: '案件不存在' }
-        }
-      }
-
       // API 模式邏輯
-      const { patch } = useApi()
       const { data, error } = await patch(`/cases/${caseId}/status`, { case_status: newStatus })
 
       if (error) {
@@ -373,19 +343,7 @@ export const useCaseManagement = () => {
    */
   const updateBusinessLevel = async (caseId, newLevel) => {
     try {
-      if (config.public.apiBaseUrl === '/mock-api') {
-        const updatedCase = mockDataStore.updateCaseBusinessLevel(caseId, newLevel)
-        if (updatedCase) {
-          success(`業務等級已更新為：${newLevel}級`)
-          return { success: true, data: updatedCase }
-        } else {
-          showError('更新業務等級失敗')
-          return { success: false, error: '案件不存在' }
-        }
-      }
-
       // API 模式邏輯
-      const { patch } = useApi()
       const { data, error } = await patch(`/cases/${caseId}/business-level`, { business_level: newLevel })
 
       if (error) {
@@ -403,18 +361,67 @@ export const useCaseManagement = () => {
   }
 
   /**
+   * 更新諮詢項目
+   */
+  const updatePurpose = async (caseId, newPurpose) => {
+    try {
+      const { updateOne } = useCases()
+      const { error } = await updateOne(caseId, { loan_purpose: newPurpose })
+
+      if (error) {
+        showError('更新諮詢項目失敗')
+        return { success: false, error }
+      }
+
+      const purposeLabel = PURPOSE_OPTIONS.find(opt => opt.value === newPurpose)?.label || newPurpose
+      success(`諮詢項目已更新為：${purposeLabel}`)
+      return { success: true }
+    } catch (error) {
+      showError('更新諮詢項目失敗，請稍後再試')
+      console.error('Update purpose error:', error)
+      return { success: false, error }
+    }
+  }
+
+  /**
+   * 更新網站
+   */
+  const updateWebsite = async (item, newWebsite) => {
+    try {
+      const { updateOne } = useCases()
+
+      // 更新 payload 中的網站資訊
+      const updatedPayload = {
+        ...(item.payload || {}),
+        '頁面_URL': newWebsite
+      }
+
+      const { error } = await updateOne(item.id, {
+        payload: updatedPayload,
+        website: newWebsite
+      })
+
+      if (error) {
+        showError('更新網站失敗')
+        return { success: false, error }
+      }
+
+      const websiteLabel = WEBSITE_OPTIONS.find(opt => opt.value === newWebsite)?.label || newWebsite
+      success(`網站已更新為：${websiteLabel}`)
+      return { success: true }
+    } catch (error) {
+      showError('更新網站失敗，請稍後再試')
+      console.error('Update website error:', error)
+      return { success: false, error }
+    }
+  }
+
+  /**
    * 刪除案件
    */
   const deleteCase = async (caseId) => {
-    if (config.public.apiBaseUrl === '/mock-api') {
-      // Mock 模式暫不支持刪除，因為可能影響其他功能測試
-      showError('Mock 模式不支持刪除案件')
-      return { success: false, error: 'Mock 模式不支持刪除' }
-    }
-
     // API 模式邏輯
-    const { delete: del } = useApi()
-    const { data, error } = await del(`/cases/${caseId}`)
+    const { data, error } = await remove(`/cases/${caseId}`)
 
     if (error) {
       showError('刪除案件失敗')
@@ -638,20 +645,20 @@ export const useCaseManagement = () => {
     return style[channel] || { label: channel || '-', class: 'bg-gray-100 text-gray-800' };
   }
 
-  const getStatusStyling = (status) => {
+  const getStatusStyling = (caseStatus) => {
     const style = {
-      unassigned: { label: '未指派', class: 'bg-gray-100 text-gray-800' },
-      valid_customer: { label: '有效客', class: 'bg-green-100 text-green-800' },
-      invalid_customer: { label: '無效客', class: 'bg-red-100 text-red-800' },
-      customer_service: { label: '客服', class: 'bg-blue-100 text-blue-800' },
+      pending: { label: '待處理', class: 'bg-red-100 text-red-800' },
+      valid_customer: { label: '有效客', class: 'bg-blue-100 text-blue-800' },
+      invalid_customer: { label: '無效客', class: 'bg-gray-100 text-gray-800' },
+      customer_service: { label: '客服', class: 'bg-purple-100 text-purple-800' },
       blacklist: { label: '黑名單', class: 'bg-black text-white' },
-      approved_disbursed: { label: '核准撥款', class: 'bg-emerald-100 text-emerald-800' },
+      approved_disbursed: { label: '核准撥款', class: 'bg-green-100 text-green-800' },
       approved_undisbursed: { label: '核准未撥', class: 'bg-yellow-100 text-yellow-800' },
-      conditional_approval: { label: '附條件', class: 'bg-orange-100 text-orange-800' },
-      rejected: { label: '婉拒', class: 'bg-red-100 text-red-800' },
-      tracking_management: { label: '追蹤管理', class: 'bg-purple-100 text-purple-800' }
-    };
-    return style[status] || { label: status || '-', class: 'bg-gray-100 text-gray-800' };
+      conditional_approval: { label: '附條件', class: 'bg-teal-100 text-teal-800' },
+      declined: { label: '婉拒', class: 'bg-orange-100 text-orange-800' },
+      tracking: { label: '追蹤中', class: 'bg-green-100 text-green-800' },
+    }
+    return style[caseStatus] || { label: caseStatus || '-', class: 'bg-gray-100 text-gray-800' };
   }
 
   const durationOptions = ['未滿三個月', '三個月至一年', '一年至三年', '三年至五年', '五年以上'];
@@ -973,8 +980,8 @@ export const useCaseManagement = () => {
         'channel',
         'customer_name',
         'line_info',
-        'purpose',
-        'website_name',
+        'loan_purpose', // Changed from 'purpose'
+        'website',      // Changed from 'website_name'
         'contact_info',
         'actions'
       ];
@@ -989,8 +996,8 @@ export const useCaseManagement = () => {
         'channel',           // 5. 來源管道
         'customer_name',     // 6. 客戶姓名
         'line_info',         // 7. LINE資訊
-        'purpose',           // 8. 諮詢項目
-        'website_name',      // 9. 網站
+        'loan_purpose',      // 8. 諮詢項目 (修正為 loan_purpose)
+        'website',           // 9. 網站 (修正為 website)
         'contact_info',      // 10. 聯絡方式
         'actions'            // 11. 操作
       ];
@@ -1059,8 +1066,8 @@ export const useCaseManagement = () => {
   if (actionsColumn) {
     switch (pageType) {
       case 'tracking':
-        // 追蹤管理頁面：編輯、轉換、安排追蹤、進件（特有）
-        actionsColumn.allowedActions = ['edit', 'convert', 'schedule', 'submit_lead'];
+        // 追蹤管理頁面：安排追蹤、進件、編輯、刪除（共4個按鈕）
+        actionsColumn.allowedActions = ['schedule', 'intake', 'edit', 'delete'];
         break;
 
       case 'pending':
@@ -1072,8 +1079,8 @@ export const useCaseManagement = () => {
       case 'approved_undisbursed':
       case 'conditional_approval':
       case 'declined':
-        // 其他頁面：只有查看、編輯、轉換，沒有安排追蹤和進件
-        actionsColumn.allowedActions = ['view', 'edit', 'convert'];
+        // 其他頁面：只有編輯、刪除
+        actionsColumn.allowedActions = ['edit', 'delete'];
         break;
 
       default:
@@ -1085,30 +1092,6 @@ export const useCaseManagement = () => {
 
   return filteredColumns;
 };
-
-  /**
-   * 產生新的假案件 (用於測試) - 保持向後兼容
-   */
-  const generateMockCase = (status = 'pending', additionalData = {}) => {
-    const timestamp = Date.now()
-    return {
-      customer_name: `假客戶${timestamp}`,
-      email: `mock${timestamp}@example.com`,
-      phone: `09${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}`,
-      line_id: `mocklineid${timestamp}`,
-      channel: 'wp_form',
-      source: `http://mock-website-${timestamp}.com`,
-      case_status: status,
-      assigned_to: null,
-      business_level: 'A',
-      payload: {
-        '頁面_URL': `http://mock-website-${timestamp}.com`,
-        '需求金額': Math.floor(Math.random() * 1000000) + 100000,
-        '房屋地址': `假地址${Math.floor(Math.random() * 999)}號`
-      },
-      ...additionalData
-    }
-  }
 
   /**
    * 完整的頁面配置 - 統一管理所有案件頁面的配置
@@ -1368,17 +1351,42 @@ export const useCaseManagement = () => {
     PAGE_CONFIGS,
     EDIT_MODAL_SECTIONS,
 
-    ADD_LEAD_FORM_CONFIG: [
-      { key: 'assigned_to', label: '承辦業務', type: 'user_select' },
-      { key: 'source_channel', label: '來源管道', type: 'select', options: CHANNEL_OPTIONS, required: true },
-      { key: 'customer_name', label: '姓名', type: 'text', required: true },
-      { key: 'line_name', label: 'LINE顯示名稱', type: 'text' },
-      { key: 'line_id', label: 'LINE ID', type: 'text' },
-      { key: 'consultation_items', label: '諮詢項目', type: 'select', options: PURPOSE_OPTIONS },
-      { key: 'website_domain', label: '網站', type: 'website_select' },
-      { key: 'email', label: '電子郵件', type: 'email' },
-      { key: 'phone', label: '手機', type: 'tel' },
-    ],
+    /**
+     * 統一的新增表單欄位配置函數
+     * @param {string} pageType - 頁面類型 (pending, tracking, etc.)
+     * @returns {Array} - 表單欄位配置
+     */
+    getAddFormFields: (pageType = 'pending') => {
+      const baseFields = [
+        { key: 'assigned_to', label: '承辦業務', type: 'user_select', required: false },
+        { key: 'channel', label: '來源管道', type: 'select', options: CHANNEL_OPTIONS, required: true },
+        { key: 'customer_name', label: '姓名', type: 'text', required: false },
+        { key: 'line_display_name', label: 'LINE顯示名稱', type: 'text', required: false },
+        { key: 'line_id', label: 'LINE ID', type: 'text', required: false },
+        { key: 'loan_purpose', label: '諮詢項目', type: 'select', options: PURPOSE_OPTIONS, required: false },
+        { key: 'website', label: '網站', type: 'website_select', required: false },
+        { key: 'email', label: '電子郵件', type: 'email', required: false },
+        { key: 'phone', label: '手機', type: 'tel', required: false },
+      ]
+
+      // 追蹤管理頁面額外增加業務等級欄位
+      if (pageType === 'tracking') {
+        baseFields.splice(1, 0, {
+          key: 'business_level',
+          label: '業務等級',
+          type: 'select',
+          options: BUSINESS_LEVEL_OPTIONS,
+          required: false
+        })
+      }
+
+      return baseFields
+    },
+
+    // 為了向後兼容，保留舊的 ADD_LEAD_FORM_CONFIG（使用 pending 頁面配置）
+    get ADD_LEAD_FORM_CONFIG() {
+      return this.getAddFormFields('pending')
+    },
 
     // State for tracking page
     state, // Export the reactive state object
@@ -1388,8 +1396,9 @@ export const useCaseManagement = () => {
     addCase,
     updateCaseStatus,
     updateBusinessLevel,
+    updatePurpose,
+    updateWebsite,
     deleteCase,
-    generateMockCase,
     generateCaseByCurrentPage: generateCaseForCurrentPage,
     getDisplaySource,
     generateCaseNumber,

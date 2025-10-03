@@ -72,6 +72,7 @@ export const useCases = () => {
     createOne,
     updateOne,
     deleteOne,
+    removeOne: deleteOne, // Alias for consistency
     assignCase,
     createForCustomer,
     getLatestForCustomer,

@@ -1,6 +1,5 @@
 
 import { ref } from 'vue';
-import { useMockDataStore } from '~/stores/mockData';
 
 export function useTrackingRecords() {
   const list = () => {
