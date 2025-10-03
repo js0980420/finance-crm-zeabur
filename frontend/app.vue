@@ -1,10 +1,27 @@
 <template>
-  <NuxtLayout>
+  <div v-if="isInitializing" class="min-h-screen flex items-center justify-center bg-gray-50">
+    <div class="text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p class="text-gray-600">載入中...</p>
+    </div>
+  </div>
+  <NuxtLayout v-else>
     <NuxtPage />
   </NuxtLayout>
 </template>
 
 <script setup>
+const authStore = useAuthStore()
+const isInitializing = ref(true)
+
+// 在應用啟動時初始化身份驗證
+onMounted(async () => {
+  if (process.client) {
+    await authStore.waitForInitialization()
+    isInitializing.value = false
+  }
+})
+
 useHead({
   title: '融資貸款公司 CRM 系統',
   meta: [

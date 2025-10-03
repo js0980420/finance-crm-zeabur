@@ -5,7 +5,8 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "cross-env NODE_ENV=development nuxt dev --port 9122 --host 0.0.0.0",
-    "dev:local": "cross-env NODE_ENV=development NUXT_PUBLIC_API_BASE_URL=http://localhost:9221/api nuxt dev --port 9121 --host localhost",
+    "dev:local": "node scripts/kill-port.js 9122 && cross-env NODE_ENV=development NUXT_PUBLIC_API_BASE_URL=http://localhost:9222/api nuxt dev --port 9122 --host localhost --no-devtools",
+    "dev:local:debug": "node scripts/kill-port.js 9122 && cross-env NODE_ENV=development NUXT_PUBLIC_API_BASE_URL=http://localhost:9222/api nuxt dev --port 9122 --host localhost",
     "dev:prod-api": "cross-env NODE_ENV=development NUXT_PUBLIC_API_BASE_URL=https://dev-finance.mercylife.cc/api nuxt dev --port 3301 --host localhost",
     "build:prod": "cross-env NODE_ENV=production nuxt build",
     "generate": "nuxt generate",
@@ -23,6 +24,7 @@
     "@nuxt/ui": "^2.18.7",
     "@pinia/nuxt": "^0.5.5",
     "nuxt": "^3.13.0",
+    "pathe": "^2.0.3",
     "pinia": "^2.2.4",
     "sweetalert2": "^11.22.3"
   },
