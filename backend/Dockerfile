@@ -74,7 +74,7 @@ COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/startup.sh /startup.sh
 
 # Copy custom PHP-FPM configuration
-COPY docker/www.conf /etc/php82/php-fpm.d/www.conf
+COPY docker/www.conf /usr/local/etc/php-fpm.d/www.conf
 
 # Make startup script executable
 RUN chmod +x /startup.sh
