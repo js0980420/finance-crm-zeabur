@@ -141,19 +141,31 @@ const { badges, startPolling, stopPolling } = useSidebarBadges()
 // Get badge count for menu item
 const getBadgeCount = (item) => {
   if (!item.href) return 0
-  
-  // Map href to badge key
+
+  // Map href to badge key (根據案件狀態動態顯示數字)
   const badgeMapping = {
-    '/cases/pending': 'pending',
-    '/cases/intake': 'intake',
-    '/cases/disbursed': 'disbursed',
-    '/cases/tracking': 'tracking',
-    '/cases/customer-tracking': 'tracking',
+    // 網路進線
+    '/cases': 'pending',
+
+    // 網路進線管理
+    '/cases/valid-customer': 'valid_customer',
+    '/cases/invalid-customer': 'invalid_customer',
+    '/cases/customer-service': 'customer_service',
     '/cases/blacklist': 'blacklist',
-    '/cases/negotiated': 'negotiated',
+
+    // 送件管理
+    '/cases/approved-disbursed': 'approved_disbursed',
+    '/cases/approved-undisbursed': 'approved_undisbursed',
+    '/cases/conditional-approval': 'conditional_approval',
+    '/cases/rejected': 'declined',
+
+    // 追蹤管理
+    '/cases/tracking': 'tracking',
+
+    // 其他
     '/sales/contact-calendar': 'contact_reminders'
   }
-  
+
   const badgeKey = badgeMapping[item.href]
   return badgeKey ? badges.value[badgeKey] : 0
 }

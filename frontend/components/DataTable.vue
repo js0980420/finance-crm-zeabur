@@ -106,23 +106,105 @@
               rowClass
             ]"
           >
-            <td 
-              v-for="column in columns" 
+            <td
+              v-for="column in columns"
               :key="column.key"
               :class="[
                 'px-6 py-4 whitespace-nowrap text-base',
                 column.cellClass
               ]"
             >
-              <slot 
-                :name="`cell-${column.key}`" 
-                :item="item" 
+              <slot
+                :name="`cell-${column.key}`"
+                :item="item"
                 :value="getNestedValue(item, column.key)"
                 :index="index"
               >
-                <span :class="column.textClass">
-                  {{ formatCellValue(item, column) }}
-                </span>
+                <!-- Actions column with dynamic buttons (網路進線格式：帶圖標和 tooltip) -->
+                <div v-if="column.type === 'actions' && column.allowedActions" class="flex items-center space-x-2 justify-end">
+                  <!-- 安排追蹤 -->
+                  <button
+                    v-if="column.allowedActions.includes('schedule')"
+                    @click="$emit('schedule-tracking', item)"
+                    class="group relative inline-flex items-center justify-center p-2 text-purple-600 hover:text-white hover:bg-purple-600 rounded-lg transition-all duration-200"
+                    title="安排追蹤"
+                  >
+                    <CalendarIcon class="w-4 h-4" />
+                    <div class="absolute bottom-full mb-2 hidden group-hover:block px-2 py-1 text-xs text-white bg-gray-900 rounded whitespace-nowrap z-10">
+                      安排追蹤
+                    </div>
+                  </button>
+
+                  <!-- 進件 -->
+                  <button
+                    v-if="column.allowedActions.includes('intake')"
+                    @click="$emit('intake-item', item)"
+                    class="group relative inline-flex items-center justify-center p-2 text-green-600 hover:text-white hover:bg-green-600 rounded-lg transition-all duration-200"
+                    title="進件"
+                  >
+                    <ArrowUpTrayIcon class="w-4 h-4" />
+                    <div class="absolute bottom-full mb-2 hidden group-hover:block px-2 py-1 text-xs text-white bg-gray-900 rounded whitespace-nowrap z-10">
+                      進件
+                    </div>
+                  </button>
+
+                  <!-- 查看 -->
+                  <button
+                    v-if="column.allowedActions.includes('view')"
+                    @click="$emit('view-item', item)"
+                    class="group relative inline-flex items-center justify-center p-2 text-blue-600 hover:text-white hover:bg-blue-600 rounded-lg transition-all duration-200"
+                    title="查看詳情"
+                  >
+                    <EyeIcon class="w-4 h-4" />
+                    <div class="absolute bottom-full mb-2 hidden group-hover:block px-2 py-1 text-xs text-white bg-gray-900 rounded whitespace-nowrap z-10">
+                      查看詳情
+                    </div>
+                  </button>
+
+                  <!-- 編輯 -->
+                  <button
+                    v-if="column.allowedActions.includes('edit')"
+                    @click="$emit('edit-item', item)"
+                    class="group relative inline-flex items-center justify-center p-2 text-gray-600 hover:text-white hover:bg-gray-600 rounded-lg transition-all duration-200"
+                    title="編輯"
+                  >
+                    <PencilIcon class="w-4 h-4" />
+                    <div class="absolute bottom-full mb-2 hidden group-hover:block px-2 py-1 text-xs text-white bg-gray-900 rounded whitespace-nowrap z-10">
+                      編輯
+                    </div>
+                  </button>
+
+                  <!-- 刪除 -->
+                  <button
+                    v-if="column.allowedActions.includes('delete')"
+                    @click="$emit('delete-item', item)"
+                    class="group relative inline-flex items-center justify-center p-2 text-red-600 hover:text-white hover:bg-red-600 rounded-lg transition-all duration-200"
+                    title="刪除"
+                  >
+                    <TrashIcon class="w-4 h-4" />
+                    <div class="absolute bottom-full mb-2 hidden group-hover:block px-2 py-1 text-xs text-white bg-gray-900 rounded whitespace-nowrap z-10">
+                      刪除
+                    </div>
+                  </button>
+                </div>
+                <!-- Select dropdown for columns with type="select" -->
+                <select
+                  v-else-if="column.type === 'select' && column.options"
+                  :value="getNestedValue(item, column.key) || ''"
+                  @change="$emit('cell-change', { item, columnKey: column.key, newValue: $event.target.value, column })"
+                  class="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">請選擇</option>
+                  <option
+                    v-for="option in column.options"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+                <!-- Default text display -->
+                <span v-else :class="column.textClass" v-html="formatCellValue(item, column)"></span>
               </slot>
             </td>
           </tr>
@@ -202,7 +284,12 @@ import {
   MagnifyingGlassIcon,
   ArrowPathIcon,
   ChevronUpDownIcon,
-  TableCellsIcon
+  TableCellsIcon,
+  EyeIcon,
+  PencilIcon,
+  TrashIcon,
+  CalendarIcon,
+  ArrowUpTrayIcon
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({

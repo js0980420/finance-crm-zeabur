@@ -105,7 +105,7 @@ const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate()
 const firstDayOfMonth = (year, month) => new Date(year, month, 1).getDay()
 
 const SCHEDULE_STATUS_OPTIONS = [
-  { label: '已排程', value: 'scheduled' },
+  { label: '待聯絡', value: 'scheduled' },
   { label: '已聯絡', value: 'contacted' },
   { label: '改期', value: 'rescheduled' }
 ]
@@ -131,7 +131,7 @@ const getStatusLabel = (status) => {
       return '改期'
     case 'scheduled':
     default:
-      return '已排程'
+      return '待聯絡'
   }
 }
 

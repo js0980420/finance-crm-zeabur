@@ -4,7 +4,7 @@
     <div class="fixed inset-0 bg-black bg-opacity-50" @click="closeModal"></div>
 
     <!-- 全螢幕彈窗 -->
-    <div class="relative w-full h-full max-w-none max-h-none bg-white overflow-auto">
+    <div class="relative w-full h-full max-w-none max-h-none bg-white overflow-auto flex flex-col">
       <!-- 標題列 -->
       <div class="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
         <h2 class="text-xl font-semibold text-gray-900">
@@ -29,7 +29,7 @@
       </div>
 
       <!-- 表單內容 -->
-      <form @submit.prevent="saveCase" class="p-6">
+      <form @submit.prevent="saveCase" class="flex-grow p-6 overflow-y-auto">
         <!-- 基本資訊區塊 -->
         <div class="mb-8">
           <h3 class="text-lg font-medium text-gray-900 mb-4 border-b border-gray-200 pb-2">
@@ -40,11 +40,24 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">案件狀態</label>
               <select
-                v-model="form.status"
+                v-model="form.case_status"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option v-for="(label, value) in caseStatusOptions" :key="value" :value="value">
                   {{ label }}
+                </option>
+              </select>
+            </div>
+
+            <!-- 業務等級 (僅追蹤狀態顯示) -->
+            <div v-if="form.case_status === 'tracking'">
+              <label class="block text-sm font-medium text-gray-700 mb-1">業務等級</label>
+              <select
+                v-model="form.business_level"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option v-for="option in BUSINESS_LEVEL_OPTIONS" :key="option.value" :value="option.value">
+                  {{ option.label }}
                 </option>
               </select>
             </div>
@@ -109,11 +122,11 @@
               />
             </div>
 
-            <!-- LINE 加好友 ID -->
+            <!-- LINE ID -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">LINE 加好友 ID</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">LINE ID</label>
               <input
-                v-model="form.line_add_friend_id"
+                v-model="form.line_id"
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
@@ -122,28 +135,36 @@
             <!-- 諮詢項目 -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">諮詢項目</label>
-              <input
-                v-model="form.consultation_item"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              <select
+                v-model="form.loan_purpose"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">請選擇</option>
+                <option v-for="option in PURPOSE_OPTIONS" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
             </div>
 
             <!-- 網站來源 -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">網站來源</label>
-              <input
-                v-model="form.website_source"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              <select
+                v-model="form.website"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">請選擇</option>
+                <option v-for="option in WEBSITE_OPTIONS" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
             </div>
 
             <!-- 客戶Email -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input
-                v-model="form.customer_email"
+                v-model="form.email"
                 type="email"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
@@ -153,7 +174,7 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">手機號碼 *</label>
               <input
-                v-model="form.customer_phone"
+                v-model="form.phone"
                 type="text"
                 required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -686,17 +707,18 @@ const availableUsers = ref([])
 // 表單資料
 const form = reactive({
   id: null,
-  status: 'unassigned',
+  case_status: 'pending',
+  business_level: 'A',
   created_at: null,
   assigned_to: '',
   channel: '',
   customer_name: '',
   line_display_name: '',
-  line_add_friend_id: '',
-  consultation_item: '',
-  website_source: '',
-  customer_email: '',
-  customer_phone: '',
+  line_id: '',
+  loan_purpose: '',
+  website: '',
+  email: '',
+  phone: '',
   case_number: '',
   birth_date: '',
   id_number: '',
@@ -741,14 +763,18 @@ const form = reactive({
 const resetForm = () => {
   Object.assign(form, {
     id: null,
-    status: 'unassigned',
+    case_status: 'pending',
+    business_level: 'A',
     created_at: new Date().toISOString(),
     assigned_to: '',
     channel: '',
     customer_name: '',
     line_display_name: '',
-    line_add_friend_id: '',
-    consultation_item: '',
+    line_id: '',
+    loan_purpose: '',
+    website: '',
+    email: '',
+    phone: '',
     birth_date: '',
     id_number: '',
     education: '',
@@ -791,17 +817,18 @@ watch(() => props.case, (newCase) => {
   if (newCase) {
     Object.assign(form, {
       id: newCase.id || null,
-      status: newCase.status || 'unassigned',
+      case_status: newCase.case_status || newCase.status || 'pending',
+      business_level: newCase.business_level || 'A',
       created_at: newCase.created_at || null,
       assigned_to: newCase.assigned_to || '',
       channel: newCase.channel || '',
       customer_name: newCase.customer_name || '',
       line_display_name: newCase.line_display_name || '',
-      line_add_friend_id: newCase.line_add_friend_id || '',
-      consultation_item: newCase.consultation_item || '',
-      website_source: newCase.website_source || '',
-      customer_email: newCase.customer_email || '',
-      customer_phone: newCase.customer_phone || '',
+      line_id: newCase.line_id || '',
+      loan_purpose: newCase.loan_purpose || '',
+      website: newCase.website || '',
+      email: newCase.email || '',
+      phone: newCase.phone || '',
       case_number: newCase.case_number || '',
       birth_date: newCase.birth_date || '',
       id_number: newCase.id_number || '',
@@ -873,7 +900,7 @@ const saveCase = () => {
     alert('請輸入客戶姓名')
     return
   }
-  if (!form.customer_phone.trim()) {
+  if (!form.phone.trim()) {
     alert('請輸入手機號碼')
     return
   }
