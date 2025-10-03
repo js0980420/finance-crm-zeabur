@@ -15,6 +15,12 @@ services:
       - crm-network
       - npm_network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   backend:
     build:
@@ -23,7 +29,6 @@ services:
     ports:
       - "${BACKEND_PORT}:8000"
     volumes:
-      - ./backend:/var/www/html
       - backend_bootstrap_cache:/var/www/html/bootstrap/cache
     environment:
       - APP_NAME=${APP_NAME}
@@ -81,7 +86,8 @@ services:
       start_period: 30s
     volumes:
       - mysql_data:/var/lib/mysql
-      # Commented out due to Windows path mounting issue
+      # Windows path mounting issue - commented out for now
+      # Database initialization scripts should be run manually via migrations
       # - ./database/init:/docker-entrypoint-initdb.d
     networks:
       - crm-network
@@ -125,6 +131,8 @@ volumes:
   mysql_data:
     driver: local
   redis_data:
+    driver: local
+  backend_app:
     driver: local
   backend_bootstrap_cache:
     driver: local

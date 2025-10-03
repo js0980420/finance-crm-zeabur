@@ -23,14 +23,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    volumes:
-      # Mount entire backend code for development
-      - ./backend:/var/www/html
-      # Exclude vendor directory to use container's dependencies
-      - /var/www/html/vendor
-      # Persistent storage
-      - ./backend/storage:/var/www/html/storage
-      - backend_bootstrap_cache:/var/www/html/bootstrap/cache
+    # Remove volumes for Windows WSL2 compatibility
+    # Code is already copied during build
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
