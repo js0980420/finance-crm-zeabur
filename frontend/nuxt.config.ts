@@ -1,6 +1,7 @@
 export default defineNuxtConfig({
-  devtools: { enabled: true },
-  ssr: false, // 開發環境關閉 SSR 加快載入速度
+  devtools: { enabled: false },
+  // 開發模式使用 SSR 避免 503 錯誤，實際渲染邏輯在客戶端
+  ssr: true,
   modules: [
     '@nuxt/ui',
     '@pinia/nuxt'
@@ -20,55 +21,61 @@ export default defineNuxtConfig({
       apiBaseUrl: process.env.NODE_ENV === 'development' ? '/api' : (process.env.NUXT_PUBLIC_API_BASE_URL || 'https://dev-finance.mercylife.cc/api')
     }
   },
-  // Development server configuration removed - using package.json port setting (9122)
-  // Development configuration
+  // Development configuration - 優化 Vite 效能
   vite: {
     server: {
       allowedHosts: ['finance.local', 'localhost'],
       hmr: {
-        overlay: false, // 關閉錯誤覆蓋層，加快開發體驗
+        overlay: false,
         protocol: 'ws',
         host: 'localhost',
         port: 9122,
         clientPort: 9122
       },
-      // Point 78: Vite proxy configuration for local development CORS solution
-      // This proxy forwards '/api/*' requests to backend server at localhost:9221
-      // Only active in development mode (NODE_ENV=development)
-      // Develop/Production environments bypass this proxy and use direct API calls
       proxy: {
         '/api': {
           target: process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:9222' : 'http://backend:8000',
           changeOrigin: true,
           secure: false,
-          ws: true, // Support WebSocket
-          configure: (proxy, options) => {
-            // 移除日誌以加快速度
-            // proxy.on('proxyReq', (proxyReq, req, res) => {
-            //   console.log(`[Vite Proxy] ${req.method} ${req.url} -> ${options.target}${req.url}`)
-            // })
-          }
+          ws: true
         }
       }
     },
     build: {
+      // 生產環境優化
+      cssCodeSplit: true,
+      chunkSizeWarningLimit: 1000,
       rollupOptions: {
-        external: (id) => {
-          return false
+        output: {
+          manualChunks: {
+            'vendor': ['vue', 'pinia'],
+            'icons': ['@heroicons/vue/24/outline'],
+            'ui': ['sweetalert2']
+          }
         }
       }
     },
     optimizeDeps: {
-      include: ['@heroicons/vue', 'sweetalert2', 'pinia'],
-      exclude: []
+      // 預構建依賴以加快首次載入
+      include: [
+        'vue',
+        'pinia',
+        '@heroicons/vue/24/outline',
+        'sweetalert2'
+      ],
+      // 排除不需要預構建的項目
+      exclude: ['@nuxt/devtools', '@nuxt/kit']
     },
-    // 啟用快取加快重新啟動
-    cacheDir: 'node_modules/.vite'
-  },
-  // Enable hot module replacement in development
-  nitro: {
-    experimental: {
-      wasm: true
+    // 啟用快取並設定 ESBuild 優化
+    cacheDir: 'node_modules/.vite',
+    esbuild: {
+      // 使用 esbuild 加速編譯
+      target: 'esnext',
+      keepNames: true
     }
+  },
+  // Nitro 配置 - SPA 模式簡化配置
+  nitro: {
+    // SPA 模式不需要實驗性功能
   },
 })
