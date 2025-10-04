@@ -1,42 +1,28 @@
-# Development stage
-FROM node:20-alpine as development
+# Nuxt 前端 - 開發模式配置
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Install necessary dependencies for native bindings
+# 安裝編譯依賴
 RUN apk add --no-cache python3 make g++
 
+# 複製 package files
 COPY package*.json ./
-# Use npm install instead of npm ci to handle lock file issues
-RUN npm install --frozen-lockfile || npm install
 
+# 安裝依賴包（包含開發依賴）
+RUN npm install
+
+# 複製源碼
 COPY . .
 
-EXPOSE 3000
+# 設定開發環境變數
+ENV NODE_ENV=development
+ENV NUXT_HOST=0.0.0.0
+ENV NUXT_PORT=8080
+ENV PORT=8080
 
-CMD ["npm", "run", "dev"]
+# 暴露端口
+EXPOSE 8080
 
-# Production stage
-FROM node:20-alpine as production
-
-WORKDIR /app
-
-# Install necessary dependencies for native bindings
-RUN apk add --no-cache python3 make g++
-
-COPY package*.json ./
-# Use npm install instead of npm ci to handle lock file issues
-RUN npm install --frozen-lockfile || npm install
-
-COPY . .
-
-# Set production environment variables before build
-ENV NODE_ENV=production
-RUN npm run build:prod
-
-# Clean up dev dependencies after build
-RUN npm install --only=production && npm cache clean --force
-
-EXPOSE 3000
-
-CMD ["node", ".output/server/index.mjs"]
+# 使用開發模式啟動
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8080"]
