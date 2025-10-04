@@ -21,9 +21,9 @@
         <div class="flex items-center space-x-2">
           <span class="font-medium">{{ item.name }}</span>
           <!-- Badge -->
-          <span 
-            v-if="badge > 0" 
-            class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full"
+          <span
+            v-if="badge > 0"
+            :class="getBadgeClass(item.href)"
           >
             {{ badge > 99 ? '99+' : badge }}
           </span>
@@ -51,14 +51,14 @@
         <div class="flex items-center space-x-2">
           <span class="font-medium">{{ item.name }}</span>
           <!-- Badge -->
-          <span 
-            v-if="badge > 0" 
-            class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full"
+          <span
+            v-if="badge > 0"
+            :class="getBadgeClass(item.href)"
           >
             {{ badge > 99 ? '99+' : badge }}
           </span>
         </div>
-        <ChevronDownIcon 
+        <ChevronDownIcon
           v-if="item.children"
           class="w-4 h-4 transition-transform duration-200"
           :class="{ 'rotate-180': isExpanded }"
@@ -73,9 +73,9 @@
     >
       <div class="flex items-center space-x-2">
         <span>{{ item.name }}</span>
-        <span 
-          v-if="badge > 0" 
-          class="inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 rounded-full"
+        <span
+          v-if="badge > 0"
+          :class="getBadgeClass(item.href, true)"
         >
           {{ badge > 99 ? '99+' : badge }}
         </span>
@@ -161,5 +161,28 @@ const iconComponents = {
 
 const getIcon = (iconName) => {
   return iconComponents[iconName] || ChartBarIcon
+}
+
+// 根據 href 決定徽章樣式
+const getBadgeClass = (href, isSmall = false) => {
+  // 綠色方塊：附條件核准、婉拒、追蹤管理
+  const greenSquarePages = [
+    '/cases/conditional-approval',  // 附條件核准
+    '/cases/rejected',              // 婉拒
+    '/cases/tracking'               // 追蹤管理
+  ]
+
+  const isGreenSquare = greenSquarePages.includes(href)
+
+  const baseClasses = 'inline-flex items-center justify-center text-xs font-bold text-white'
+  const sizeClasses = isSmall ? 'w-4 h-4' : 'w-5 h-5'
+
+  if (isGreenSquare) {
+    // 綠色方塊
+    return `${baseClasses} ${sizeClasses} bg-green-500 rounded-sm`
+  } else {
+    // 紅色圓形（預設）
+    return `${baseClasses} ${sizeClasses} bg-red-500 rounded-full`
+  }
 }
 </script>

@@ -42,7 +42,7 @@
       <template #actions>
         <button
           @click="openAddModal"
-          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
         >
           <PlusIcon class="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
           新增追蹤紀錄
@@ -163,19 +163,19 @@
             <input v-model="form.customer_name" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-900 mb-1">記錄人員 <span class="text-red-500">*</span></label>
-            <select v-model="form.tracking_person_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <label class="block text-sm font-semibold text-gray-900 mb-1">記錄人員</label>
+            <select v-model="form.tracking_person_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
               <option value="">請選擇</option>
               <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-900 mb-1">聯繫時間 <span class="text-red-500">*</span></label>
-            <input v-model="form.contact_time" type="datetime-local" required class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+            <label class="block text-sm font-semibold text-gray-900 mb-1">聯繫時間</label>
+            <input v-model="form.contact_time" type="datetime-local" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-900 mb-1">服務階段 <span class="text-red-500">*</span></label>
-            <input v-model="form.service_stage" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+            <label class="block text-sm font-semibold text-gray-900 mb-1">服務階段</label>
+            <input v-model="form.service_stage" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
           </div>
           <div>
             <label class="block text-sm font-semibold text-gray-900 mb-1">商機單</label>
@@ -186,12 +186,12 @@
             <textarea v-model="form.maintenance_progress" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-900 mb-1">商機狀態 <span class="text-red-500">*</span></label>
-            <input v-model="form.opportunity_status" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+            <label class="block text-sm font-semibold text-gray-900 mb-1">商機狀態</label>
+            <input v-model="form.opportunity_status" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-900 mb-1">聯絡方式 <span class="text-red-500">*</span></label>
-            <select v-model="form.contact_method" required class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <label class="block text-sm font-semibold text-gray-900 mb-1">聯絡方式</label>
+            <select v-model="form.contact_method" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
               <option value="">請選擇</option>
               <option value="電話">電話</option>
               <option value="LINE">LINE</option>
@@ -208,7 +208,7 @@
 
           <div class="flex justify-end space-x-3 pt-4">
             <button type="button" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50" @click="closeEditModal">取消</button>
-            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="saving">
+            <button type="submit" class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="saving">
               {{ saving ? '儲存中...' : '儲存' }}
             </button>
           </div>
@@ -401,9 +401,29 @@ const loadTrackingRecords = async () => {
 const loadUsers = async () => {
   try {
     const { success: ok, users: list } = await getUsers({ per_page: 250 })
-    if (ok && Array.isArray(list)) users.value = list
+    if (ok && Array.isArray(list) && list.length > 0) {
+      users.value = list
+    } else {
+      // 如果 API 沒有返回用戶，使用模擬資料
+      console.warn('No users from API, using mock data')
+      users.value = [
+        { id: 1, name: '王小明' },
+        { id: 2, name: '李小華' },
+        { id: 3, name: '陳大同' },
+        { id: 4, name: '林美玲' },
+        { id: 5, name: '張志豪' }
+      ]
+    }
   } catch (e) {
     console.warn('Load users failed:', e)
+    // API 失敗時使用模擬資料
+    users.value = [
+      { id: 1, name: '王小明' },
+      { id: 2, name: '李小華' },
+      { id: 3, name: '陳大同' },
+      { id: 4, name: '林美玲' },
+      { id: 5, name: '張志豪' }
+    ]
   }
 }
 

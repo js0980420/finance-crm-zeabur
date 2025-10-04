@@ -33,10 +33,21 @@ export const useSidebarBadges = () => {
       const { data, error } = await get('/leads', {
         case_status: status,  // 使用 case_status 參數
         page: 1,
-        per_page: 1
+        per_page: 1000  // 改為較大的數字以獲取所有資料
       })
       if (!error && data) {
-        return data.total || 0
+        // 支援多種 API 返回格式
+        if (data.total !== undefined) {
+          return data.total
+        } else if (data.meta?.total !== undefined) {
+          return data.meta.total
+        } else if (Array.isArray(data.data)) {
+          return data.data.length
+        } else if (Array.isArray(data)) {
+          return data.length
+        }
+        console.warn(`Unknown data format for ${status}:`, data)
+        return 0
       }
       return 0
     } catch (err) {
@@ -99,6 +110,8 @@ export const useSidebarBadges = () => {
         getCount('tracking'),
         getContactRemindersCount()
       ])
+
+      console.log('🔔 側邊欄徽章更新:', { pending, tracking, contactReminders })
 
       badges.value = {
         pending,

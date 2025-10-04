@@ -54,29 +54,75 @@
     <!-- Event Detail Modal -->
     <div v-if="isModalOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-        <h3 class="text-lg font-semibold mb-4">事件詳情</h3>
-        <div v-if="selectedEvent" class="space-y-2">
-          <p><strong>標題:</strong> {{ selectedEvent.title }}</p>
-          <p><strong>日期:</strong> {{ formatDate(selectedEvent.start) }}</p>
-          <p v-if="!isEditing"><strong>狀態:</strong> {{ getStatusLabel(selectedEvent.extendedProps?.status) }}</p>
-          <div v-else>
-            <label class="block text-sm font-semibold text-gray-900 mb-1">狀態 <span class="text-red-500">*</span></label>
-            <select v-model="editingEvent.extendedProps.status" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-              <option v-for="option in SCHEDULE_STATUS_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
-            </select>
-          </div>
-          <p><strong>案件ID:</strong> {{ selectedEvent.extendedProps?.caseId }}</p>
-          <p v-if="!isEditing && selectedEvent.extendedProps?.notes"><strong>備註:</strong> {{ selectedEvent.extendedProps.notes }}</p>
-          <div v-else-if="isEditing">
-            <label class="block text-sm font-semibold text-gray-900 mb-1">備註</label>
-            <textarea v-model="editingEvent.extendedProps.notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+        <h3 class="text-lg font-semibold mb-4">追蹤事件詳情</h3>
+        <div v-if="selectedEvent" class="space-y-3">
+          <p><strong>案件:</strong> {{ selectedEvent.title }}</p>
+          <p><strong>排程日期:</strong> {{ formatDate(selectedEvent.start) }}</p>
+          <p>
+            <strong>狀態:</strong>
+            <span
+              class="inline-block px-2 py-1 rounded text-sm font-medium ml-2"
+              :class="{
+                'bg-blue-100 text-blue-800': selectedEvent.extendedProps?.status === 'scheduled' || !selectedEvent.extendedProps?.status,
+                'bg-green-100 text-green-800': selectedEvent.extendedProps?.status === 'contacted',
+                'bg-yellow-100 text-yellow-800': selectedEvent.extendedProps?.status === 'rescheduled'
+              }"
+            >
+              {{ getStatusLabel(selectedEvent.extendedProps?.status) }}
+            </span>
+          </p>
+          <p v-if="selectedEvent.extendedProps?.notes"><strong>備註:</strong> {{ selectedEvent.extendedProps.notes }}</p>
+
+          <!-- 改期日期選擇器(只在點擊改期按鈕後顯示) -->
+          <div v-if="isRescheduling" class="border-t pt-3 mt-3">
+            <label class="block text-sm font-semibold text-gray-900 mb-2">選擇新的追蹤日期</label>
+            <input
+              type="date"
+              v-model="newScheduleDate"
+              :min="getTodayDateString()"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
         </div>
         <div class="mt-6 flex justify-end space-x-2">
-          <button v-if="!isEditing" @click="startEditing" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">編輯</button>
-          <button v-if="isEditing" @click="cancelEditing" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">取消編輯</button>
-          <button v-if="isEditing" @click="saveEvent" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">儲存</button>
-          <button @click="closeModal" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">關閉</button>
+          <!-- 只有待聯絡狀態才顯示已聯絡和改期按鈕 -->
+          <template v-if="selectedEvent?.extendedProps?.status === 'scheduled' || !selectedEvent?.extendedProps?.status">
+            <button
+              v-if="!isRescheduling"
+              @click="markAsContacted"
+              class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            >
+              已聯絡
+            </button>
+            <button
+              v-if="!isRescheduling"
+              @click="startRescheduling"
+              class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+            >
+              改期
+            </button>
+            <button
+              v-if="isRescheduling"
+              @click="confirmReschedule"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              確認改期
+            </button>
+            <button
+              v-if="isRescheduling"
+              @click="cancelRescheduling"
+              class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+            >
+              取消
+            </button>
+          </template>
+          <button
+            v-if="!isRescheduling"
+            @click="closeModal"
+            class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+          >
+            關閉
+          </button>
         </div>
       </div>
     </div>
@@ -203,67 +249,111 @@ const nextMonth = () => {
 }
 
 const isModalOpen = ref(false)
-const isEditing = ref(false)
+const isRescheduling = ref(false)
 const selectedEvent = ref(null)
-const editingEvent = ref(null)
+const newScheduleDate = ref('')
 
 const viewEvent = (event) => {
   selectedEvent.value = {
     ...event,
-    date: event.start, // 將 date 屬性設置為 event.start，方便 formatDate 處理
+    date: event.start,
     description: event.extendedProps?.notes || '無',
     caseId: event.extendedProps?.caseId || '無'
   }
-  editingEvent.value = JSON.parse(JSON.stringify(selectedEvent.value)) // 複製一份用於編輯
-  isEditing.value = false // 預設為非編輯模式
+  isRescheduling.value = false
+  newScheduleDate.value = ''
   isModalOpen.value = true
 }
 
-const startEditing = () => {
-  isEditing.value = true
-}
-
-const cancelEditing = () => {
-  editingEvent.value = JSON.parse(JSON.stringify(selectedEvent.value)) // 取消編輯時重置
-  isEditing.value = false
-}
-
-const saveEvent = async () => {
-  const previousStatus = selectedEvent.value.extendedProps?.status
-  const newStatus = editingEvent.value.extendedProps?.status
-
-  emit('updateEvent', editingEvent.value) // 發送更新事件給父組件
-  selectedEvent.value = editingEvent.value // 更新顯示的事件
-  isEditing.value = false
-
-  // 如果狀態從其他狀態改為「已聯絡」，提示並跳轉到追蹤紀錄頁面
-  if (previousStatus !== 'contacted' && newStatus === 'contacted') {
-    closeModal()
-
-    // 使用 Nuxt 的 notification 和 router
-    const { success } = useNotification()
-    const router = useRouter()
-
-    success('行程已標記為已聯絡，請填寫追蹤紀錄')
-
-    // 延遲一下讓通知顯示，然後跳轉並帶上案件ID和客戶名稱參數
-    setTimeout(() => {
-      router.push({
-        path: '/cases/tracking/tracking-records',
-        query: {
-          caseId: editingEvent.value.extendedProps?.caseId,
-          autoCreate: 'true'
-        }
-      })
-    }, 1000)
+const markAsContacted = async () => {
+  const updatedEvent = {
+    ...selectedEvent.value,
+    extendedProps: {
+      ...selectedEvent.value.extendedProps,
+      status: 'contacted',
+      contacted_at: new Date().toISOString()
+    }
   }
+
+  emit('updateEvent', updatedEvent)
+  selectedEvent.value = updatedEvent
+  closeModal()
+
+  const { success } = useNotification()
+  const router = useRouter()
+
+  success('行程已標記為已聯絡，請填寫追蹤紀錄')
+
+  setTimeout(() => {
+    router.push({
+      path: '/cases/tracking/tracking-records',
+      query: {
+        caseId: selectedEvent.value.extendedProps?.caseId,
+        autoCreate: 'true'
+      }
+    })
+  }, 1000)
+}
+
+const startRescheduling = () => {
+  isRescheduling.value = true
+  newScheduleDate.value = ''
+}
+
+const cancelRescheduling = () => {
+  isRescheduling.value = false
+  newScheduleDate.value = ''
+}
+
+const confirmReschedule = () => {
+  if (!newScheduleDate.value) {
+    const { error } = useNotification()
+    error('請選擇新的追蹤日期')
+    return
+  }
+
+  const updatedEvent = {
+    ...selectedEvent.value,
+    extendedProps: {
+      ...selectedEvent.value.extendedProps,
+      status: 'rescheduled',
+      rescheduled_to: newScheduleDate.value
+    }
+  }
+
+  emit('updateEvent', updatedEvent)
+
+  // 建立新的追蹤排程
+  const newEvent = {
+    start: newScheduleDate.value,
+    title: selectedEvent.value.title,
+    extendedProps: {
+      ...selectedEvent.value.extendedProps,
+      status: 'scheduled',
+      rescheduled_from_id: selectedEvent.value.id
+    }
+  }
+
+  emit('createEvent', newEvent)
+
+  const { success } = useNotification()
+  success('追蹤已改期')
+  closeModal()
+}
+
+const getTodayDateString = () => {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 const closeModal = () => {
   isModalOpen.value = false
   selectedEvent.value = null
-  editingEvent.value = null
-  isEditing.value = false
+  isRescheduling.value = false
+  newScheduleDate.value = ''
 }
 
 const formatDate = (date) => {

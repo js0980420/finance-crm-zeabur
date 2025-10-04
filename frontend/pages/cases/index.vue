@@ -15,7 +15,7 @@
         </button>
         <button
           @click="openAddModal"
-          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
         >
           <PlusIcon class="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
           新增進線
@@ -65,7 +65,7 @@
         <!-- 測試進線通知按鈕 -->
         <button
           @click="simulateNewLeadNotification"
-          class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors duration-200 flex items-center space-x-2"
+          class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2"
         >
           <BellIcon class="w-4 h-4" />
           <span>測試進線通知</span>
@@ -189,8 +189,8 @@
             </div>
           </div>
           <div class="flex justify-end space-x-3 pt-2">
-            <button type="button" class="px-4 py-2 border border-gray-300 rounded-lg" @click="closeConvert">取消</button>
-            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">送件</button>
+            <button type="button" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50" @click="closeConvert">取消</button>
+            <button type="submit" class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900">送件</button>
           </div>
         </form>
       </div>
@@ -234,7 +234,7 @@
             </button>
             <button
               type="submit"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
               :disabled="saving || !assignForm.assigned_to"
             >
               {{ saving ? '指派中...' : '確認指派' }}
@@ -290,7 +290,7 @@
             </button>
             <button
               type="submit"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
               :disabled="saving || !lineNameForm.display_name?.trim()"
             >
               {{ saving ? '儲存中...' : '儲存' }}
