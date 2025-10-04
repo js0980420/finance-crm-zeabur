@@ -1,3 +1,5 @@
+import { useAuthStore } from '~/stores/auth'
+
 export default defineNuxtPlugin(() => {
   // Initialize auth store on client side only
   const authStore = useAuthStore()
