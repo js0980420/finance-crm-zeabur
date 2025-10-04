@@ -23,8 +23,13 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    # Remove volumes for Windows WSL2 compatibility
-    # Code is already copied during build
+    # Mount backend source code for hot-reload development
+    # Exclude vendor and node_modules for better performance on Windows
+    volumes:
+      - ./backend:/var/www/html
+      - /var/www/html/vendor  # 排除 vendor (使用容器內的)
+      - /var/www/html/node_modules  # 排除 node_modules (使用容器內的)
+      - backend_bootstrap_cache:/var/www/html/bootstrap/cache
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
