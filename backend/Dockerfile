@@ -40,9 +40,6 @@ WORKDIR /var/www/html
 COPY . .
 
 # 建立 Laravel 必要可寫目錄並設定權限
-# - 建立 bootstrap/cache 與 storage 下常用子目錄
-# - 將擁有者設為 www-data（PHP 預設使用者），避免執行期寫入受阻
-# - 權限 775：同群組可寫，避免過度開放
 RUN set -eux; \
     mkdir -p bootstrap/cache \
              storage/framework/{cache,data,sessions,views} \
@@ -51,33 +48,33 @@ RUN set -eux; \
     chown -R www-data:www-data bootstrap storage; \
     chmod -R 775 bootstrap storage
 
-# Install PHP dependencies
-# Firebase and grpc have been removed from composer.json and composer.lock
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# 設定開發環境變數
+ENV APP_ENV=development
+ENV APP_DEBUG=true
+ENV LOG_LEVEL=debug
+
+# Install PHP dependencies (包含開發依賴)
+RUN composer install --optimize-autoloader --no-interaction
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Clear any existing Laravel cache to ensure environment variables are read correctly
-# Note: This runs during build time, so environment variables from docker-compose won't be available
-# We'll need to clear cache at runtime if needed
+# Clear any existing Laravel cache
 RUN php artisan config:clear || true
 RUN php artisan route:clear || true
 RUN php artisan view:clear || true
 
-# Copy Nginx configuration and startup script
+# Copy configuration files
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/startup.sh /startup.sh
-
-# Copy custom PHP-FPM configuration
 COPY docker/www.conf /usr/local/etc/php-fpm.d/www.conf
 
 # Make startup script executable
 RUN chmod +x /startup.sh
 
-# Create Nginx, supervisor, and Nginx log directories
+# Create required directories
 RUN mkdir -p /var/log/supervisor /run/nginx /var/log/nginx
 
 EXPOSE 8000
