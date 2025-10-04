@@ -15,10 +15,10 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     public: {
-      // Point 78: Use vite proxy in local development to avoid CORS issues
-      // Local development (NODE_ENV=development): use proxy '/api'
-      // Develop/Production environments: use direct API URL
-      apiBaseUrl: process.env.NODE_ENV === 'development' ? '/api' : (process.env.NUXT_PUBLIC_API_BASE_URL || 'https://dev-finance.mercylife.cc/api')
+      // Use environment variable to determine API base URL
+      // Local: set NUXT_PUBLIC_API_BASE_URL='/api' to use proxy
+      // Zeabur: set NUXT_PUBLIC_API_BASE_URL to backend service URL
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || '/api'
     }
   },
   // Development configuration - 優化 Vite 效能
@@ -34,7 +34,8 @@ export default defineNuxtConfig({
       },
       proxy: {
         '/api': {
-          target: process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:9222' : 'http://backend:8000',
+          // Use VITE_BACKEND_URL environment variable or default to local backend
+          target: process.env.VITE_BACKEND_URL || 'http://127.0.0.1:9222',
           changeOrigin: true,
           secure: false,
           ws: true
