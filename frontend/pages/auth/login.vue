@@ -85,7 +85,7 @@
 <script setup>
 definePageMeta({
   layout: false,
-  middleware: 'guest'
+  middleware: process.env.NODE_ENV === 'development' ? [] : 'guest'
 })
 
 // Removed i18n usage to prevent warnings
@@ -164,7 +164,7 @@ const handleLogin = async () => {
       
       // 檢查是否有指定的重定向路徑
       const route = useRoute()
-      let redirectPath = route.query.redirect || '/dashboard/analytics'
+      let redirectPath = route.query.redirect || '/cases'
       
       // 如果沒有指定重定向路徑，根據用戶角色決定
       if (!route.query.redirect) {

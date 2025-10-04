@@ -275,7 +275,6 @@ import {
   PlusIcon
 } from '@heroicons/vue/24/outline'
 import DataTable from '~/components/DataTable.vue'
-import { useMockDataStore } from '~/stores/mockData'
 
 definePageMeta({ middleware: 'auth' })
 

@@ -84,76 +84,67 @@
       <template #actions>
         <!-- 可以在這裡添加相關操作按鈕 -->
       </template>
+
+      <!-- Cell Slots for Dropdowns -->
+      <template #cell-case_status="{ item, value }">
+        <select
+          :value="value"
+          @change="handleCellChange({ item, columnKey: 'case_status', newValue: $event.target.value })"
+          class="px-2 py-1 border border-gray-300 rounded bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500"
+        >
+          <option v-for="option in CASE_STATUS_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
+        </select>
+      </template>
+
+      <template #cell-business_level="{ item, value }">
+        <select
+          :value="value"
+          @change="handleCellChange({ item, columnKey: 'business_level', newValue: $event.target.value })"
+          class="px-2 py-1 border border-gray-300 rounded bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500"
+        >
+          <option v-for="option in BUSINESS_LEVEL_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
+        </select>
+      </template>
+
+      <template #cell-loan_purpose="{ item, value }">
+        <select
+          :value="value"
+          @change="handleCellChange({ item, columnKey: 'loan_purpose', newValue: $event.target.value })"
+          class="px-2 py-1 border border-gray-300 rounded bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">請選擇</option>
+          <option v-for="option in PURPOSE_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
+        </select>
+      </template>
+
+      <template #cell-website="{ item, value }">
+        <select
+          :value="value"
+          @change="handleCellChange({ item, columnKey: 'website', newValue: $event.target.value })"
+          class="px-2 py-1 border border-gray-300 rounded bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">請選擇</option>
+          <option v-for="option in WEBSITE_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
+        </select>
+      </template>
+
+      <!-- 移除自定義的 cell-actions，讓 DataTable 使用 useCaseManagement 配置的動態按鈕 -->
     </DataTable>
 
     <!-- Add Modal -->
     <div v-if="addModalOpen" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 mt-0" @click.self="closeAddModal">
       <div class="bg-white rounded-lg p-6 w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ pageConfig.addModalTitle }}</h3>
-        <form @submit.prevent="saveAddModal" class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-          <!-- 案件狀態 (預設為tracking) -->
-          <div>
-            <label class="block text-sm font-semibold text-gray-900 mb-1">案件狀態</label>
-            <select v-model="addForm.case_status" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500" disabled>
-              <option :value="pageConfig.defaultStatus">{{ CASE_STATUS_OPTIONS.find(opt => opt.value === pageConfig.defaultStatus)?.label }}</option>
-            </select>
-          </div>
-
-          <!-- 業務等級 (追蹤頁面專有) -->
-          <div v-if="pageConfig.showBusinessLevel">
-            <label class="block text-sm font-semibold text-gray-900 mb-1">業務等級</label>
-            <select v-model="addForm.business_level" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option v-for="option in BUSINESS_LEVEL_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
-            </select>
-          </div>
-
-          <!-- 時間 (預設當下時間) -->
-          <div>
-            <label class="block text-sm font-semibold text-gray-900 mb-1">時間</label>
-            <input v-model="addForm.created_at" type="datetime-local" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500" readonly />
-          </div>
-
-          <!-- Dynamic Fields -->
-          <div v-for="field in ADD_LEAD_FORM_CONFIG" :key="field.key" :class="{ 'md:col-span-2': field.type === 'textarea' }">
-            <label class="block text-sm font-semibold text-gray-900 mb-1">
-              {{ field.label }}
-              <span v-if="field.required" class="text-red-500">*</span>
-            </label>
-
-            <!-- User Select -->
-            <select v-if="field.type === 'user_select'" v-model="addForm[field.key]" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option value="">未指派</option>
-              <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
-            </select>
-
-            <!-- Website Select -->
-            <select v-else-if="field.type === 'website_select'" v-model="addForm[field.key]" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option value="">請選擇網站</option>
-              <option v-for="option in WEBSITE_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
-            </select>
-
-            <!-- Generic Select -->
-            <select v-else-if="field.type === 'select'" v-model="addForm[field.key]" :required="field.required" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option value="">請選擇</option>
-              <option v-for="option in field.options" :key="option.value" :value="option.value">{{ option.label }}</option>
-            </select>
-
-            <!-- Textarea -->
-            <textarea v-else-if="field.type === 'textarea'" v-model="addForm[field.key]" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="請描述客戶的諮詢需求..."></textarea>
-
-            <!-- Other Inputs (text, email, tel) -->
-            <input v-else v-model="addForm[field.key]" :type="field.type" :required="field.required" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-          </div>
-
-          <!-- 按鈕 -->
-          <div class="md:col-span-2 flex justify-end space-x-4 pt-4 border-t">
-            <button type="button" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50" @click="closeAddModal">取消</button>
-            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="addModalSaving">
-              {{ addModalSaving ? '新增中...' : '新增' }}
-            </button>
-          </div>
-        </form>
+        <!-- 使用統一的 CustomerForm 組件，追蹤頁面使用 'tracking' 配置 -->
+        <CustomerForm
+          :fields="getAddFormFields('tracking')"
+          :model-value="addForm"
+          :users="users"
+          :website-options="WEBSITE_OPTIONS"
+          @save="saveAddModal"
+          @cancel="closeAddModal"
+        />
       </div>
     </div>
 
@@ -382,7 +373,6 @@ import DataTable from '~/components/DataTable.vue'
 import TrackingCalendar from '~/components/TrackingCalendar.vue'
 import CaseEditModal from '~/components/cases/CaseEditModal.vue'
 import { useCaseManagement } from '~/composables/useCaseManagement'
-import { useMockDataStore } from '~/stores/mockData'
 import { useUsers } from '~/composables/useUsers'
 import { useCases } from '~/composables/useCases'
 import { useNotification } from '~/composables/useNotification'
@@ -397,25 +387,22 @@ const {
   WEBSITE_OPTIONS,
   BUSINESS_LEVEL_OPTIONS,
   PURPOSE_OPTIONS,
-  ADD_LEAD_FORM_CONFIG,
-  HIDDEN_FIELDS_CONFIG,
-  EDIT_MODAL_SECTIONS,
   SALES_STAFF,
   getTableColumnsForPage,
   getPageConfig,
-  addCase,
+  getAddFormFields,
   generateCaseNumber,
-  getDisplaySource,
-  updateCaseStatus,
-  updateBusinessLevel
+  getDisplaySource
 } = useCaseManagement()
 
 // 獲取追蹤頁面配置
 const pageConfig = getPageConfig('tracking')
 
-const mockDataStore = useMockDataStore()
+// 使用統一的表格欄位配置（專為追蹤頁面設計）
+const trackingTableColumns = computed(() => getTableColumnsForPage('tracking'))
+
 const authStore = useAuthStore()
-const { updateOne: updateCase } = useCases()
+const { updateOne: updateCase, removeOne, create: createCase } = useCases()
 const { success, error: showError, confirm } = useNotification()
 const { refreshBadges } = useSidebarBadges()
 
@@ -424,10 +411,7 @@ const trackingStatusOptions = computed(() => CASE_STATUS_OPTIONS.filter(opt =>
   ['tracking', 'approved_disbursed', 'approved_undisbursed', 'conditional_approval'].includes(opt.value)
 ))
 
-// 使用統一的表格欄位配置（專為追蹤頁面設計）
-const trackingTableColumns = computed(() => getTableColumnsForPage('tracking'))
-
-// 響應式數據 - 使用與網路進線相同的變數名稱
+// 響應式數據
 const loading = ref(false)
 const loadError = ref(null)
 const searchQuery = ref('')
@@ -435,8 +419,8 @@ const currentPage = ref(1)
 const itemsPerPage = ref(10)
 const selectedStatus = ref('')
 const selectedAssignee = ref('all')
-const leads = ref([]) // 改名為 leads 以保持一致性
-const users = ref(SALES_STAFF) // 使用固定的業務人員列表
+const leads = ref([])
+const users = ref(SALES_STAFF)
 
 // 編輯相關
 const editOpen = ref(false)
@@ -460,12 +444,12 @@ const addForm = reactive({
   business_level: 'A',
   created_at: new Date().toISOString().slice(0, 16),
   assigned_to: null,
-  source_channel: '',
+  channel: '',
   customer_name: '',
-  line_name: '',
+  line_display_name: '',
   line_id: '',
-  consultation_items: '',
-  website_domain: '',
+  loan_purpose: '',
+  website: '',
   email: '',
   phone: ''
 })
@@ -527,32 +511,23 @@ const loadLeads = async () => {
   loading.value = true
   loadError.value = null
   try {
-    const config = useRuntimeConfig()
-    const isMockMode = config.public.apiBaseUrl === '/mock-api'
+    // 使用 /leads API 載入追蹤中的案件（與新增保持一致）
+    const { get } = useApi()
+    const { data, error } = await get('/leads', { case_status: 'tracking', per_page: 1000 })
 
-    if (isMockMode) {
-      // 載入追蹤相關的案件
-      const trackingCases = mockDataStore.cases.filter(case_ =>
-        ['tracking', 'approved_disbursed', 'approved_undisbursed', 'conditional_approval', 'declined'].includes(case_.case_status) ||
-        case_.assigned_to !== null // 有被指派的案件都可能需要追蹤
-      )
-      leads.value = trackingCases
-      console.log('追蹤管理 (Mock) - 載入案件:', leads.value.length, '件')
+    if (error) {
+      showError(error?.message || '載入追蹤案件失敗')
+      loadError.value = error?.message || '載入追蹤案件失敗'
+      leads.value = []
     } else {
-      // API 模式：從後端載入
-      const { list: listCases } = useCases()
-      const { items, success: ok, error } = await listCases({ case_status: 'tracking', per_page: 1000 }) // 獲取所有追蹤中的案件
-
-      if (ok) {
-        leads.value = items || []
-        console.log('追蹤管理 (API) - 載入案件:', leads.value.length, '件')
-      } else {
-        showError(error?.message || '載入追蹤案件失敗')
-      }
+      leads.value = data?.data || []
+      console.log('追蹤管理 - 載入案件:', leads.value.length, '件')
     }
   } catch (error) {
     console.error('載入追蹤案件失敗:', error)
     loadError.value = error.message || '載入失敗'
+    showError('載入追蹤案件失敗')
+    leads.value = []
   } finally {
     loading.value = false
   }
@@ -620,12 +595,12 @@ const openAddModal = () => {
     business_level: 'A',
     created_at: new Date().toISOString().slice(0, 16),
     assigned_to: null,
-    source_channel: '',
+    channel: '',
     customer_name: '',
-    line_name: '',
+    line_display_name: '',
     line_id: '',
-    consultation_items: '',
-    website_domain: '',
+    loan_purpose: '',
+    website: '',
     email: '',
     phone: ''
   })
@@ -640,12 +615,12 @@ const closeAddModal = () => {
     business_level: 'A',
     created_at: new Date().toISOString().slice(0, 16),
     assigned_to: null,
-    source_channel: '',
+    channel: '',
     customer_name: '',
-    line_name: '',
+    line_display_name: '',
     line_id: '',
-    consultation_items: '',
-    website_domain: '',
+    loan_purpose: '',
+    website: '',
     email: '',
     phone: ''
   })
@@ -659,7 +634,7 @@ const saveAddModal = async () => {
       showError('客戶姓名為必填項目')
       return
     }
-    if (!addForm.source_channel) {
+    if (!addForm.channel) {
       showError('來源管道為必填項目')
       return
     }
@@ -671,12 +646,10 @@ const saveAddModal = async () => {
       email: addForm.email || null,
       phone: addForm.phone || null,
       line_id: addForm.line_id || null,
-      line_user_info: addForm.line_name ? {
-        display_name: addForm.line_name,
-        editable_name: addForm.line_name
-      } : {},
-      channel: addForm.source_channel,
-      loan_purpose: addForm.consultation_items || null,
+      line_display_name: addForm.line_display_name || null,
+      channel: addForm.channel,
+      loan_purpose: addForm.loan_purpose || null,
+      website: addForm.website || null,
       assigned_to: addForm.assigned_to || null,
       assignee: assignedUser ? {
         id: assignedUser.id,
@@ -686,10 +659,10 @@ const saveAddModal = async () => {
       case_status: pageConfig.defaultStatus, // 使用頁面配置的預設狀態
       business_level: addForm.business_level, // 追蹤管理頁面特有
       payload: {
-        '頁面_URL': addForm.website_domain || '',
-        '貸款需求': addForm.consultation_items || '',
+        '頁面_URL': addForm.website || '',
+        '貸款需求': addForm.loan_purpose || '',
         'LINE_ID': addForm.line_id || '',
-        'LINE顯示名稱': addForm.line_name || ''
+        'LINE顯示名稱': addForm.line_display_name || ''
       }
     }
 
@@ -761,16 +734,10 @@ const onDelete = async (lead) => {
   if (!confirmed) return
 
   try {
-    const { removeOne } = useCases() // FIX: Changed from deleteOne to removeOne
-    if (typeof removeOne !== 'function') {
-      showError('刪除功能未正確配置 (removeOne is not a function)')
-      console.error('useCases() did not return a removeOne function')
-      return
-    }
     const { error } = await removeOne(lead.id)
     if (!error) {
       await loadLeads()
-      await refreshBadges() // 更新側邊欄計數
+      await refreshBadges()
       success(`編號 ${lead.id} 的案件已刪除`)
     } else {
       showError(error?.message || '刪除失敗')
@@ -804,17 +771,15 @@ const handleCellChange = async ({ item, columnKey, newValue, column }) => {
         leads.value[levelIndex].business_level = newValue
       }
       break
-    case 'channel':
-      // TODO: Implement update channel if needed
-      console.warn('Channel update not yet implemented in tracking page')
-      break
+    case 'loan_purpose':
     case 'purpose':
-      // TODO: Implement update purpose if needed
-      console.warn('Purpose update not yet implemented in tracking page')
+      await updatePurpose(item.id, newValue)
+      await loadLeads()
       break
+    case 'website':
     case 'website_name':
-      // TODO: Implement update website if needed
-      console.warn('Website update not yet implemented in tracking page')
+      await updateWebsite(item, newValue)
+      await loadLeads()
       break
     default:
       console.warn('Unhandled column change:', columnKey, newValue)

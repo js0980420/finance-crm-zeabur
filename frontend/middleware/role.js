@@ -1,3 +1,5 @@
+import { useAuthStore } from '~/stores/auth'
+
 export default defineNuxtRouteMiddleware(async (to) => {
   // 🚀 開發模式：直接放行
   if (process.env.NODE_ENV === 'development') {

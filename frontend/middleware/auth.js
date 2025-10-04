@@ -1,10 +1,6 @@
-export default defineNuxtRouteMiddleware(async (to, from) => {
-  // 🚀 開發模式：伺服器端和客戶端都跳過登入驗證
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🚀 開發模式：跳過登入驗證')
-    return
-  }
+import { useAuthStore } from '~/stores/auth'
 
+export default defineNuxtRouteMiddleware(async (to, from) => {
   const authStore = useAuthStore()
 
   // 如果是登入頁面，直接允許通過，不執行任何檢查
