@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class CustomerCase extends Model
 {
@@ -21,7 +22,7 @@ class CustomerCase extends Model
         'loan_type',
         'loan_term',
         'interest_rate',
-        'status',
+        'case_status',
         'submitted_at',
         'approved_at',
         'rejected_at',
@@ -267,12 +268,23 @@ class CustomerCase extends Model
      */
     public static function generateCaseNumber(): string
     {
-        $year = date('Y');
-        $month = date('m');
-        $sequence = static::whereYear('created_at', $year)
-            ->whereMonth('created_at', $month)
-            ->count() + 1;
-        
-        return sprintf('%s%s%04d', $year, $month, $sequence);
+        return DB::transaction(function () {
+            $year = date('Y');
+            $month = date('m');
+            $prefix = $year . $month;
+
+            $latestCase = static::where('case_number', 'like', $prefix . '%')
+                                ->lockForUpdate()
+                                ->orderBy('case_number', 'desc')
+                                ->first();
+
+            $sequence = 1;
+            if ($latestCase) {
+                $lastSequence = (int) substr($latestCase->case_number, 6);
+                $sequence = $lastSequence + 1;
+            }
+
+            return sprintf('%s%04d', $prefix, $sequence);
+        }, 5); // Retry transaction 5 times on deadlock
     }
 }

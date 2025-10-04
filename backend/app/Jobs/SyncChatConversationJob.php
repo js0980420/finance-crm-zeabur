@@ -9,7 +9,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use App\Models\ChatConversation;
-use App\Services\FirebaseChatService;
+// use App\Services\FirebaseChatService;
 
 class SyncChatConversationJob implements ShouldQueue
 {
@@ -48,62 +48,15 @@ class SyncChatConversationJob implements ShouldQueue
 
     /**
      * Execute the job.
+     * Firebase disabled for Zeabur deployment - this job does nothing
      */
-    public function handle(FirebaseChatService $firebaseChatService)
+    public function handle()
     {
-        try {
-            Log::channel('firebase-sync')::info('Firebase sync job started', [
-                'conversation_id' => $this->conversationId,
-                'operation' => $this->operation,
-                'attempt' => $this->attempts()
-            ]);
-
-            switch ($this->operation) {
-                case 'sync':
-                    $this->handleSync($firebaseChatService);
-                    break;
-                
-                case 'delete':
-                    $this->handleDelete($firebaseChatService);
-                    break;
-                
-                case 'mark_read':
-                    $this->handleMarkRead($firebaseChatService);
-                    break;
-                
-                case 'batch_sync':
-                    $this->handleBatchSync($firebaseChatService);
-                    break;
-                
-                default:
-                    throw new \InvalidArgumentException("Unknown operation: {$this->operation}");
-            }
-
-            Log::channel('firebase-sync')::info('Firebase sync job completed successfully', [
-                'conversation_id' => $this->conversationId,
-                'operation' => $this->operation
-            ]);
-
-        } catch (\Exception $e) {
-            Log::channel('firebase-sync')::error('Firebase sync job failed', [
-                'conversation_id' => $this->conversationId,
-                'operation' => $this->operation,
-                'attempt' => $this->attempts(),
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            // 如果是最後一次嘗試，記錄到失敗隊列
-            if ($this->attempts() >= $this->tries) {
-                Log::channel('firebase-sync')::error('Firebase sync job failed permanently', [
-                    'conversation_id' => $this->conversationId,
-                    'operation' => $this->operation,
-                    'final_error' => $e->getMessage()
-                ]);
-            }
-
-            throw $e;
-        }
+        Log::info('Firebase sync job skipped (Firebase disabled)', [
+            'conversation_id' => $this->conversationId,
+            'operation' => $this->operation
+        ]);
+        return;
     }
 
     /**

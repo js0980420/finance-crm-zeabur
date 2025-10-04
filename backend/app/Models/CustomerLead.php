@@ -12,19 +12,75 @@ class CustomerLead extends Model
 
     protected $fillable = [
         'customer_id',
-        'status',
+        'case_status',
         'assigned_to',
         'channel', // wp_form, phone_call, line, email
         'source', // page url / website
+        'website', // 統一欄位名稱
         'name',
+        'customer_name', // 統一欄位名稱
         'phone',
         'email',
         'line_id',
+        'line_display_name', // LINE 顯示名稱
+        'loan_purpose', // 諮詢項目
+        'business_level', // 業務等級 A/B/C
         'ip_address',
         'user_agent',
         'payload',
         'is_suspected_blacklist',
         'suspected_reason',
+        'notes', // 備註
+        'created_by', // 建立者
+        'assigned_at', // 指派時間
+
+        // 個人資料
+        'birth_date',
+        'id_number',
+        'education',
+        'case_number',
+
+        // 聯絡資訊
+        'customer_region',
+        'home_address',
+        'landline_phone',
+        'comm_address_same_as_home',
+        'comm_address',
+        'comm_phone',
+        'residence_duration',
+        'residence_owner',
+        'telecom_operator',
+
+        // 公司資料
+        'company_name',
+        'company_phone',
+        'company_address',
+        'job_title',
+        'monthly_income',
+        'has_labor_insurance',
+        'company_tenure',
+
+        // 貸款資訊
+        'demand_amount',
+        'loan_amount',
+        'loan_type',
+        'loan_term',
+        'interest_rate',
+
+        // 緊急聯絡人
+        'emergency_contact_1_name',
+        'emergency_contact_1_relationship',
+        'emergency_contact_1_phone',
+        'contact_time_1',
+        'confidential_1',
+        'emergency_contact_2_name',
+        'emergency_contact_2_relationship',
+        'emergency_contact_2_phone',
+        'contact_time_2',
+        'confidential_2',
+
+        // 其他
+        'referrer',
     ];
 
     protected $casts = [

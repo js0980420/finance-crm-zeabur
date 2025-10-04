@@ -8,7 +8,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use App\Services\FirebaseStaffStatsService;
+// use App\Services\FirebaseStaffStatsService;
 
 class UpdateStaffUnreadStatsJob implements ShouldQueue
 {
@@ -34,48 +34,15 @@ class UpdateStaffUnreadStatsJob implements ShouldQueue
 
     /**
      * Execute the job.
+     * Firebase disabled for Zeabur deployment - this job does nothing
      */
-    public function handle(FirebaseStaffStatsService $statsService): void
+    public function handle(): void
     {
-        try {
-            if ($this->updateAll || $this->staffId === null) {
-                Log::channel('firebase')->info('Starting all staff stats update job');
-                
-                $result = $statsService->updateAllStaffStats();
-                
-                if ($result) {
-                    Log::channel('firebase')->info('All staff stats update job completed successfully', $result);
-                } else {
-                    Log::channel('firebase')->error('All staff stats update job failed');
-                }
-            } else {
-                Log::channel('firebase')->info('Starting individual staff stats update job', [
-                    'staff_id' => $this->staffId
-                ]);
-                
-                $success = $statsService->updateStaffUnreadStats($this->staffId);
-                
-                if ($success) {
-                    Log::channel('firebase')->info('Individual staff stats update job completed successfully', [
-                        'staff_id' => $this->staffId
-                    ]);
-                } else {
-                    Log::channel('firebase')->error('Individual staff stats update job failed', [
-                        'staff_id' => $this->staffId
-                    ]);
-                }
-            }
-        } catch (\Exception $e) {
-            Log::channel('firebase')->error('Staff stats update job failed with exception', [
-                'staff_id' => $this->staffId,
-                'update_all' => $this->updateAll,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            // 重新拋出異常以標記作業失敗
-            throw $e;
-        }
+        Log::info('Staff stats update job skipped (Firebase disabled)', [
+            'staff_id' => $this->staffId,
+            'update_all' => $this->updateAll
+        ]);
+        return;
     }
 
     /**
