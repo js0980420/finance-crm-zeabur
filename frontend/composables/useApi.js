@@ -44,6 +44,9 @@ export const useApi = () => {
           console.error('Failed to parse user profile:', error)
         }
       }
+
+      // 開發環境也需要真實 token
+      // 已移除假 token，確保 API 請求有正確的認證
     }
 
     // Define requestOptions outside try block so it's accessible in catch

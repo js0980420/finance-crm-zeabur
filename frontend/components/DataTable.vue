@@ -372,7 +372,14 @@ const emit = defineEmits([
   'retry',
   'sort',
   'page-change',
-  'page-size-change'
+  'page-size-change',
+  'cell-change',
+  'assign-user',
+  'edit-line-name',
+  'view-item',
+  'edit-item',
+  'convert-item',
+  'delete-item'
 ])
 
 // Computed properties
@@ -438,11 +445,15 @@ const getNestedValue = (obj, path) => {
 
 const formatCellValue = (item, column) => {
   const value = getNestedValue(item, column.key)
-  
+  console.log(`formatCellValue 被呼叫 - column: ${column.key}, value:`, value, 'hasFormatter:', !!column.formatter)
+
   if (column.formatter && typeof column.formatter === 'function') {
-    return column.formatter(value, item)
+    const result = column.formatter(value, item)
+    console.log(`  → formatter 返回:`, result)
+    return result
   }
-  
+
+  console.log(`  → 沒有 formatter,直接返回 value`)
   return value
 }
 

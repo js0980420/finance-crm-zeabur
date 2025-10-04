@@ -1,72 +1,51 @@
-
-import { ref } from 'vue';
+/**
+ * 追蹤記錄 API
+ * 移除所有 mock 邏輯，直接使用真實 API
+ */
 
 export function useTrackingRecords() {
-  const list = () => {
-    console.log('Listing tracking records from mock store');
-    const config = useRuntimeConfig();
+  const { get, post, put, del } = useApi()
 
-    if (config.public.apiBaseUrl === '/mock-api') {
-      const mockDataStore = useMockDataStore();
-      return Promise.resolve({
-        items: mockDataStore.trackingRecords,
-        success: true
-      });
+  const list = async () => {
+    const { data, error } = await get('/contact-schedules')
+    if (error) {
+      console.error('Failed to fetch tracking records:', error)
+      return { items: [], success: false, error }
     }
+    return { items: data?.data || [], success: true }
+  }
 
-    // API 模式的邏輯 (暫時返回空陣列)
-    return Promise.resolve({
-      items: [],
-      success: true
-    });
-  };
-
-  const create = (record: any) => {
-    console.log('Creating tracking record:', record);
-    const config = useRuntimeConfig();
-
-    if (config.public.apiBaseUrl === '/mock-api') {
-      const mockDataStore = useMockDataStore();
-      const newRecord = mockDataStore.addTrackingRecord(record);
-      return { error: false, message: 'Success', data: newRecord };
+  const create = async (record: any) => {
+    const { data, error } = await post('/contact-schedules', record)
+    if (error) {
+      console.error('Failed to create tracking record:', error)
+      return { error: true, message: error.message || 'Failed to create' }
     }
+    return { error: false, message: 'Success', data: data?.data }
+  }
 
-    // API 模式的邏輯
-    return { error: false, message: 'Success' };
-  };
-
-  const update = (id: string, record: any) => {
-    console.log(`Updating tracking record ${id}:`, record);
-    const config = useRuntimeConfig();
-
-    if (config.public.apiBaseUrl === '/mock-api') {
-      const mockDataStore = useMockDataStore();
-      const updatedRecord = mockDataStore.updateTrackingRecord(parseInt(id), record);
-      return { error: !updatedRecord, message: updatedRecord ? 'Success' : 'Not found', data: updatedRecord };
+  const update = async (id: string, record: any) => {
+    const { data, error } = await put(`/contact-schedules/${id}`, record)
+    if (error) {
+      console.error('Failed to update tracking record:', error)
+      return { error: true, message: error.message || 'Failed to update' }
     }
+    return { error: false, message: 'Success', data: data?.data }
+  }
 
-    // API 模式的邏輯
-    return { error: false, message: 'Success' };
-  };
-
-  const remove = (id: string) => {
-    console.log(`Removing tracking record ${id}`);
-    const config = useRuntimeConfig();
-
-    if (config.public.apiBaseUrl === '/mock-api') {
-      const mockDataStore = useMockDataStore();
-      const removedRecord = mockDataStore.removeTrackingRecord(parseInt(id));
-      return { error: !removedRecord, message: removedRecord ? 'Success' : 'Not found', data: removedRecord };
+  const remove = async (id: string) => {
+    const { data, error } = await del(`/contact-schedules/${id}`)
+    if (error) {
+      console.error('Failed to delete tracking record:', error)
+      return { error: true, message: error.message || 'Failed to delete' }
     }
-
-    // API 模式的邏輯
-    return { error: false, message: 'Success' };
-  };
+    return { error: false, message: 'Success', data: data?.data }
+  }
 
   return {
     list,
     create,
     update,
     remove,
-  };
+  }
 }

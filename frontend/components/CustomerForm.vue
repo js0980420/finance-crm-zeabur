@@ -2,58 +2,65 @@
   <div class="p-4">
     <form @submit.prevent="onSubmit" class="space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium mb-1">姓名</label>
-          <input v-model="form.name" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required />
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">手機號碼</label>
-          <input v-model="form.phone" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required />
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">Email</label>
-          <input v-model="form.email" type="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">所在地區</label>
-          <input v-model="form.region" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-        </div>
-        <div class="md:col-span-2">
-          <label class="block text-sm font-medium mb-1">地址</label>
-          <input v-model="form.address" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">來源管道</label>
-          <select v-model="form.channel" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            <option value="">未指定</option>
-            <option value="wp_form">網站表單</option>
-            <option value="line">官方賴</option>
-            <option value="email">Email</option>
-            <option value="phone_call">電話</option>
+        <!-- 動態欄位渲染 -->
+        <div v-for="field in fields" :key="field.key" :class="{ 'md:col-span-2': field.type === 'textarea' }">
+          <label class="block text-sm font-medium mb-1">
+            {{ field.label }}
+            <span v-if="field.required" class="text-red-500">*</span>
+          </label>
+
+          <!-- User Select -->
+          <select
+            v-if="field.type === 'user_select'"
+            v-model="form[field.key]"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">未指派</option>
+            <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
           </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">網站來源 (domain)</label>
-          <select v-model="form.website_source" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+
+          <!-- Website Select -->
+          <select
+            v-else-if="field.type === 'website_select'"
+            v-model="form[field.key]"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
             <option value="">請選擇網站</option>
-            <option v-for="website in availableWebsites" :key="website.id" :value="website.domain">
-              {{ website.name }} ({{ website.domain }})
+            <option v-for="option in websiteOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
             </option>
-            <option value="_custom">手動輸入...</option>
           </select>
-          <!-- 手動輸入欄位，當選擇 '_custom' 時顯示 -->
-          <input 
-            v-if="form.website_source === '_custom'" 
-            v-model="customWebsiteInput" 
-            type="text" 
-            placeholder="請輸入域名..."
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-2" 
-            @blur="handleCustomWebsiteInput"
+
+          <!-- Generic Select -->
+          <select
+            v-else-if="field.type === 'select'"
+            v-model="form[field.key]"
+            :required="field.required"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">請選擇</option>
+            <option v-for="option in field.options" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+
+          <!-- Textarea -->
+          <textarea
+            v-else-if="field.type === 'textarea'"
+            v-model="form[field.key]"
+            rows="3"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            :placeholder="field.placeholder"
+          ></textarea>
+
+          <!-- Other Inputs -->
+          <input
+            v-else
+            v-model="form[field.key]"
+            :type="field.type"
+            :required="field.required"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
-        </div>
-        <div class="md:col-span-2">
-          <label class="block text-sm font-medium mb-1">備註</label>
-          <textarea v-model="form.notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
         </div>
       </div>
       <div class="flex justify-end space-x-3">
@@ -66,73 +73,38 @@
 
 <script setup>
 const props = defineProps({
-  modelValue: { type: Object, default: () => ({}) }
+  modelValue: { type: Object, default: () => ({}) },
+  fields: { type: Array, default: () => [] },
+  users: { type: Array, default: () => [] },
+  websiteOptions: { type: Array, default: () => [] }
 })
 const emit = defineEmits(['save','cancel'])
 
-// Point 40: Available websites for selection
-const availableWebsites = ref([])
-const customWebsiteInput = ref('')
+// 動態建立表單資料
+const form = reactive({})
 
-const form = reactive({
-  id: null,
-  name: '',
-  phone: '',
-  email: '',
-  region: '',
-  address: '',
-  channel: 'wp_form',
-  website_source: '',
-  notes: ''
-})
-
-watch(() => props.modelValue, (v) => {
-  Object.assign(form, {
-    id: v?.id ?? null,
-    name: v?.name ?? '',
-    phone: v?.phone ?? '',
-    email: v?.email ?? '',
-    region: v?.region ?? '',
-    address: v?.address ?? '',
-    channel: v?.channel ?? 'wp_form',
-    website_source: v?.website_source ?? '',
-    notes: v?.notes ?? ''
+// 初始化表單資料（根據 fields 配置）
+const initializeForm = () => {
+  props.fields.forEach(field => {
+    form[field.key] = props.modelValue[field.key] ?? ''
   })
+}
+
+// 監聽 modelValue 變化
+watch(() => props.modelValue, (newVal) => {
+  if (newVal) {
+    props.fields.forEach(field => {
+      form[field.key] = newVal[field.key] ?? ''
+    })
+  }
 }, { immediate: true })
 
-// Point 40: Initialize API composable
-const { get } = useApi()
-
-// Point 40: Load available websites from API
-const loadWebsites = async () => {
-  try {
-    const { data, error } = await get('/websites/options')
-    if (error) {
-      console.error('載入網站選項失敗:', error)
-      // 如果載入失敗，仍然允許使用者手動輸入
-      return
-    }
-    availableWebsites.value = data || []
-  } catch (error) {
-    console.error('載入網站選項失敗:', error)
-    // 如果載入失敗，仍然允許使用者手動輸入
-  }
-}
-
-// Point 40: Handle custom website input
-const handleCustomWebsiteInput = () => {
-  if (customWebsiteInput.value.trim()) {
-    form.website_source = customWebsiteInput.value.trim()
-    customWebsiteInput.value = ''
-  }
-}
+// 監聽 fields 變化
+watch(() => props.fields, () => {
+  initializeForm()
+}, { immediate: true })
 
 const onSubmit = () => {
   emit('save', { ...form })
 }
-
-// Point 40: Load websites when component is mounted
-onMounted(() => {
-  loadWebsites()
-})
 </script>

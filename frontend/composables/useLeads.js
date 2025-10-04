@@ -58,5 +58,11 @@ export const useLeads = () => {
     return await del(`/leads/${id}`)
   }
 
-  return { list, listSubmittable, getOne, updateOne, removeOne, convertToCase }
+  const create = async (payload) => {
+    const { data, error } = await post('/leads', payload)
+    if (error) return { success: false, error }
+    return { success: true, data }
+  }
+
+  return { list, listSubmittable, getOne, updateOne, removeOne, convertToCase, create }
 }
