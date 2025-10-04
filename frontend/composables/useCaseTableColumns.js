@@ -99,7 +99,7 @@ export const UNIFIED_TABLE_COLUMNS = [
     key: "channel",
     title: "來源管道",
     sortable: true,
-    width: "100px",
+    width: "110px",
     hidden: false,
     type: "select",
     options: CHANNEL_OPTIONS,

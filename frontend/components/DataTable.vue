@@ -121,7 +121,7 @@
                 :index="index"
               >
                 <!-- Actions column with dynamic buttons (網路進線格式：帶圖標和 tooltip) -->
-                <div v-if="column.type === 'actions' && column.allowedActions" class="flex items-center space-x-2 justify-end">
+                <div v-if="column.type === 'actions' && column.allowedActions" class="flex items-center space-x-2">
                   <!-- 安排追蹤 -->
                   <button
                     v-if="column.allowedActions.includes('schedule')"
