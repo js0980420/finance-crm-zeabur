@@ -176,20 +176,9 @@ const handleLogin = async () => {
       console.log('準備重定向到:', redirectPath)
       console.log('當前登入狀態:', authStore.isLoggedIn)
       console.log('用戶資料:', authStore.user)
-      
-      // 使用 window.location.href 進行強制重定向，避免中間件競爭
-      try {
-        console.log('使用 window.location.href 進行重定向')
-        // 使用 replace 避免產生歷史記錄
-        if (process.client) {
-          window.location.replace(redirectPath)
-        } else {
-          await navigateTo(redirectPath)
-        }
-      } catch (error) {
-        console.warn('重定向失敗，嘗試使用 navigateTo:', error)
-        await navigateTo(redirectPath)
-      }
+
+      // 使用 navigateTo 進行重定向，保持 Nuxt 應用狀態
+      await navigateTo(redirectPath, { replace: true })
       
     } else {
       console.error('登入回應異常:', result)
