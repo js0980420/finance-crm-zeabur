@@ -51,11 +51,9 @@ RUN set -eux; \
     chown -R www-data:www-data bootstrap storage; \
     chmod -R 775 bootstrap storage
 
-# Install PHP dependencies  
-# Handle potential lock file sync issues and platform requirements
-# Remove outdated lock file and install dependencies with platform requirement ignoring
-RUN rm -f composer.lock && \
-    composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-req=ext-grpc
+# Install PHP dependencies
+# Firebase and grpc have been removed from composer.json and composer.lock
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
