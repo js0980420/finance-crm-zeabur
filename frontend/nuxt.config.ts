@@ -17,7 +17,7 @@ export default defineNuxtConfig({
       // 開發環境使用 proxy，生產環境使用完整 URL
       apiBaseUrl: process.env.NODE_ENV === 'development' 
         ? '/api' 
-        : (process.env.NUXT_PUBLIC_API_BASE_URL || 'https://laravel-api.zeabur.app/api')
+        : process.env.NUXT_PUBLIC_API_BASE_URL
     }
   },
   vite: {
@@ -35,7 +35,7 @@ export default defineNuxtConfig({
         proxy: {
           '/api': {
             // Zeabur 開發環境中使用您的 Laravel API
-            target: process.env.VITE_BACKEND_URL || 'https://laravel-api.zeabur.app',
+            target: process.env.VITE_BACKEND_URL,
             changeOrigin: true,
             secure: true,
             ws: true,
