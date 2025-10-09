@@ -112,7 +112,7 @@
       </div>
     </div>
 
-    <!-- Edit Modal - 使用統一的 CaseEditModal 組件 -->
+    <!-- Edit Modal - 使用Demo風格的 CaseEditModalDemo 組件 -->
     <CaseEditModal
       :isOpen="editOpen"
       :case="editingCase"
@@ -365,6 +365,7 @@ const { get: apiGet } = useApi()
 // 搜尋和篩選
 const searchQuery = ref('')
 const selectedAssignee = ref('all')
+const selectedStatus = ref('pending'); // 預設為待處理
 
 // 載入狀態
 const loading = ref(false)
@@ -734,14 +735,44 @@ const closeEdit = () => {
 const saveEdit = async (apiPayload) => {
   saving.value = true
   try {
-    // CaseEditModal 已經將資料轉換為正確的 API 格式
-    // apiPayload 包含 { id, case_status, ..., payload: {...} }
     console.log('🟡 index.vue - saveEdit - 收到的 apiPayload:', apiPayload)
 
-    const { error, data } = await updateLead(apiPayload.id, apiPayload)
+    let result;
+
+    // 如果有圖片需要上傳，使用 FormData
+    if (apiPayload.hasImages && apiPayload.imageFiles && apiPayload.imageFiles.length > 0) {
+      const formData = new FormData()
+
+      // 添加所有欄位到 FormData
+      Object.keys(apiPayload).forEach(key => {
+        if (key !== 'hasImages' && key !== 'imageFiles') {
+          const value = apiPayload[key]
+          if (value !== null && value !== undefined && value !== '') {
+            // 布林值轉為 1 或 0
+            if (typeof value === 'boolean') {
+              formData.append(key, value ? '1' : '0')
+            } else {
+              formData.append(key, value)
+            }
+          }
+        }
+      })
+
+      // 添加圖片檔案
+      apiPayload.imageFiles.forEach((file) => {
+        formData.append('images[]', file)
+      })
+
+      result = await updateLead(apiPayload.id, formData)
+    } else {
+      // 沒有圖片，使用一般 JSON
+      const { hasImages, imageFiles, ...payload } = apiPayload
+      result = await updateLead(apiPayload.id, payload)
+    }
+
+    const { error, data } = result
 
     console.log('🟡 index.vue - saveEdit - API 回應:', { error, data })
-    console.log('🟡 index.vue - saveEdit - API 回應的完整 data:', JSON.stringify(data, null, 2))
 
     if (!error) {
       editOpen.value = false
@@ -1061,13 +1092,13 @@ const saveAddModal = async (formData) => {
     }
 
     // 使用 createLead 方法
-    const { success: ok, data: newLead, error } = await createLead(newLeadData)
+    const { success: ok, data: newLeadDataFromApi, error } = await createLead(newLeadData) // 將 newLead 改名為 newLeadDataFromApi
 
-    if (ok && newLead) {
+    if (ok && newLeadDataFromApi) { // 檢查 newLeadDataFromApi
       // 直接將新進線加入列表頂部
-      leads.value.unshift(newLead)
+      leads.value.unshift(newLeadDataFromApi) // <-- 這裡應該添加真正的 Lead 數據
       addModalOpen.value = false
-      success(`新增進線 #${newLead.id} 成功！`)
+      success(`新增進線 #${newLeadDataFromApi.id} 成功！`) // 使用 newLeadDataFromApi.id
       // 背景更新徽章數量
       refreshBadges()
     } else {
@@ -1112,7 +1143,7 @@ const handleCellChange = async ({ item, columnKey, newValue, column }) => {
   }
 }
 
-// 更新進線狀態
+// 更新進線狀態 - 使用統一的 composable
 const updateLeadStatus = async (item, newStatus) => {
   if (!item || !item.id) {
     console.error('Invalid item:', item)
@@ -1121,13 +1152,11 @@ const updateLeadStatus = async (item, newStatus) => {
   }
 
   try {
-    const { patch } = useApi()
-    const { data, error } = await patch(`/leads/${item.id}/case-status`, {
-      case_status: newStatus
-    })
+    const { updateStatus } = useLeads()
+    const { success: updateSuccess, error } = await updateStatus(item.id, newStatus) // <-- 檢查 updateSuccess
 
-    if (error) {
-      showError('更新進線狀態失敗')
+    if (error || !updateSuccess) { // <-- 如果有錯誤或者不成功
+      showError(error?.message || '更新進線狀態失敗')
       return
     }
 
