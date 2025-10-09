@@ -764,6 +764,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/leads', [LeadController::class, 'index']);
     Route::post('/leads', [LeadController::class, 'store']); // 創建進線
     Route::get('/leads/submittable', [LeadController::class, 'submittable']);
+    Route::get('/leads/export/csv', [LeadController::class, 'exportCsv']); // 導出 CSV
     Route::get('/leads/{lead}', [LeadController::class, 'show']);
     Route::put('/leads/{lead}', [LeadController::class, 'update']);
     Route::patch('/leads/{lead}/case-status', [LeadController::class, 'updateCaseStatus']); // 更新案件狀態

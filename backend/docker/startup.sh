@@ -1,5 +1,4 @@
 #!/bin/sh
-set -e
 
 echo "Starting Laravel application initialization..."
 
@@ -14,10 +13,9 @@ php artisan route:clear
 php artisan view:clear
 php artisan cache:clear
 
-# Skip migrations to speed up startup (run manually if needed)
-# echo "Running database migrations..."
-# php artisan migrate --force || echo "Migration completed with warnings - continuing..."
-echo "Skipping migrations (already applied)..."
+# Run database migrations
+echo "Running database migrations..."
+php artisan migrate --force
 
 # Cache configuration for better performance (with updated env vars)
 echo "Caching configuration..."
