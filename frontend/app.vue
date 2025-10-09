@@ -11,8 +11,10 @@
 </template>
 
 <script setup>
+import { useAuthStore } from '~/stores/auth'
+
 const authStore = useAuthStore()
-const isInitializing = ref(true)
+const isInitializing = ref(process.client ? true : false) // 在 SSR 期間，isInitializing 應為 false
 
 // 在應用啟動時初始化身份驗證
 onMounted(async () => {
