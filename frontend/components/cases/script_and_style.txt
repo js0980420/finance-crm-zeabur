@@ -1,0 +1,412 @@
+<script setup>
+import { reactive, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useCaseManagement } from '~/composables/useCaseManagement'
+import { useNotification } from '~/composables/useNotification'
+import { useUsers } from '~/composables/useUsers'
+import {
+  CASE_STATUS_OPTIONS,
+  BUSINESS_LEVEL_OPTIONS,
+  CHANNEL_OPTIONS,
+  PURPOSE_OPTIONS,
+  WEBSITE_OPTIONS
+} from '~/composables/useCaseConfig'
+
+const props = defineProps({
+  isOpen: { type: Boolean, default: false },
+  case: { type: Object, default: null },
+  pageType: { type: String, default: 'pending' } // 用於判斷顯示哪些欄位
+})
+
+const emit = defineEmits(['close', 'save'])
+
+const { error: showError } = useNotification()
+
+// 儲存狀態
+const saving = ref(false)
+
+// 可用用戶列表
+const availableUsers = ref([])
+
+// 表單資料
+const form = reactive({
+  id: null,
+  case_status: 'pending',
+  business_level: 'A',
+  created_at: null,
+  assigned_to: '',
+  channel: '',
+  customer_name: '',
+  line_display_name: '',
+  line_id: '',
+  loan_purpose: '',
+  website: '',
+  email: '',
+  phone: '',
+  case_number: '',
+  birth_date: '',
+  id_number: '',
+  education: '',
+  customer_region: '',
+  home_address: '',
+  landline_phone: '',
+  comm_address_same_as_home: false,
+  comm_address: '',
+  comm_phone: '',
+  residence_duration: '',
+  residence_owner: '',
+  telecom_operator: '',
+  company_name: '',
+  company_phone: '',
+  company_address: '',
+  job_title: '',
+  monthly_income: '',
+  has_labor_insurance: false,
+  company_tenure: '',
+  demand_amount: '',
+  loan_amount: '',
+  loan_type: '',
+  loan_term: '',
+  interest_rate: '',
+  notes: '',
+  emergency_contact_1_name: '',
+  emergency_contact_1_relationship: '',
+  emergency_contact_1_phone: '',
+  contact_time_1: '',
+  confidential_1: false,
+  emergency_contact_2_name: '',
+  emergency_contact_2_relationship: '',
+  emergency_contact_2_phone: '',
+  contact_time_2: '',
+  confidential_2: false,
+  referrer: ''
+})
+
+// 判斷欄位是否顯示（根據頁面類型）
+const showField = (fieldKey) => {
+  // 業務等級只在追蹤管理頁面顯示
+  if (fieldKey === 'business_level') {
+    return props.pageType === 'tracking' || form.case_status === 'tracking'
+  }
+  // 案件編號在特定狀態下顯示
+  if (fieldKey === 'case_number') {
+    return ['approved_disbursed', 'approved_undisbursed', 'conditional_approval', 'declined'].includes(props.pageType)
+  }
+  // 地區/地址在特定頁面隱藏
+  if (fieldKey === 'location') {
+    return !['pending', 'valid_customer', 'invalid_customer', 'customer_service', 'blacklist', 'tracking'].includes(props.pageType)
+  }
+  // 需求金額在特定頁面顯示
+  if (fieldKey === 'amount') {
+    return ['approved_disbursed', 'approved_undisbursed', 'conditional_approval', 'declined'].includes(props.pageType)
+  }
+  return true
+}
+
+// 是否為編輯模式
+const isEdit = computed(() => !!props.case?.id)
+
+// 從 API 資料轉換為表單格式
+const transformApiPayloadToForm = (apiData) => {
+  if (!apiData) return null
+
+  return {
+    // 基本資訊（直接欄位）
+    id: apiData.id || null,
+    case_status: apiData.case_status || apiData.status || 'pending',
+    business_level: apiData.business_level || 'A',
+    created_at: apiData.created_at || new Date().toISOString(),
+    assigned_to: apiData.assigned_to || '',
+    channel: apiData.channel || '',
+    customer_name: apiData.customer_name || '',
+    line_display_name: apiData.line_display_name || '',
+    line_id: apiData.line_id || '',
+    loan_purpose: apiData.loan_purpose || '',
+    website: apiData.website || '',
+    email: apiData.email || '',
+    phone: apiData.phone || '',
+    notes: apiData.notes || '',
+
+    // 個人資料（直接欄位）
+    case_number: apiData.case_number || '',
+    birth_date: apiData.birth_date || '',
+    id_number: apiData.id_number || '',
+    education: apiData.education || '',
+
+    // 聯絡資訊（直接欄位）
+    customer_region: apiData.customer_region || '',
+    home_address: apiData.home_address || '',
+    landline_phone: apiData.landline_phone || '',
+    comm_address_same_as_home: apiData.comm_address_same_as_home || false,
+    comm_address: apiData.comm_address || '',
+    comm_phone: apiData.comm_phone || '',
+    residence_duration: apiData.residence_duration || '',
+    residence_owner: apiData.residence_owner || '',
+    telecom_operator: apiData.telecom_operator || '',
+
+    // 公司資料（直接欄位）
+    company_name: apiData.company_name || '',
+    company_phone: apiData.company_phone || '',
+    company_address: apiData.company_address || '',
+    job_title: apiData.job_title || '',
+    monthly_income: apiData.monthly_income || '',
+    has_labor_insurance: apiData.has_labor_insurance || false,
+    company_tenure: apiData.company_tenure || '',
+
+    // 貸款資訊（直接欄位）
+    demand_amount: apiData.demand_amount || '',
+    loan_amount: apiData.loan_amount || '',
+    loan_type: apiData.loan_type || '',
+    loan_term: apiData.loan_term || '',
+    interest_rate: apiData.interest_rate || '',
+
+    // 緊急聯絡人（直接欄位）
+    emergency_contact_1_name: apiData.emergency_contact_1_name || '',
+    emergency_contact_1_relationship: apiData.emergency_contact_1_relationship || '',
+    emergency_contact_1_phone: apiData.emergency_contact_1_phone || '',
+    contact_time_1: apiData.contact_time_1 || '',
+    confidential_1: apiData.confidential_1 || false,
+    emergency_contact_2_name: apiData.emergency_contact_2_name || '',
+    emergency_contact_2_relationship: apiData.emergency_contact_2_relationship || '',
+    emergency_contact_2_phone: apiData.emergency_contact_2_phone || '',
+    contact_time_2: apiData.contact_time_2 || '',
+    confidential_2: apiData.confidential_2 || false,
+    referrer: apiData.referrer || ''
+  }
+}
+
+// 監聽案件資料變更
+watch(() => props.case, (newCase) => {
+  if (newCase) {
+    const transformedData = transformApiPayloadToForm(newCase)
+    Object.assign(form, transformedData)
+  } else {
+    form.created_at = new Date().toISOString()
+  }
+}, { immediate: true })
+
+// 關閉彈窗
+const closeModal = () => {
+  if (!saving.value) {
+    emit('close')
+  }
+}
+
+// 處理通訊地址同步
+const handleCommAddressChange = () => {
+  if (form.comm_address_same_as_home) {
+    form.comm_address = form.home_address
+  }
+}
+
+// 監聽戶籍地址變更
+watch(() => form.home_address, (newAddress) => {
+  if (form.comm_address_same_as_home) {
+    form.comm_address = newAddress
+  }
+})
+
+// 將表單資料轉換為 API 格式
+const transformFormToApiPayload = () => {
+  // 所有欄位都是直接欄位，不再使用 payload 包裝
+  const apiPayload = {
+    // ID
+    id: form.id,
+    customer_id: form.customer_id,
+
+    // 基本資訊
+    case_status: form.case_status,
+    assigned_to: form.assigned_to,
+    channel: form.channel,
+    source: form.source,
+    website: form.website,
+    customer_name: form.customer_name,
+    phone: form.phone,
+    email: form.email,
+    line_id: form.line_id,
+    line_display_name: form.line_display_name,
+    loan_purpose: form.loan_purpose,
+    business_level: form.business_level,
+    notes: form.notes,
+    created_at: form.created_at,
+
+    // 個人資料
+    birth_date: form.birth_date,
+    id_number: form.id_number,
+    education: form.education,
+    case_number: form.case_number,
+
+    // 聯絡資訊
+    customer_region: form.customer_region,
+    home_address: form.home_address,
+    landline_phone: form.landline_phone,
+    comm_address_same_as_home: form.comm_address_same_as_home,
+    comm_address: form.comm_address,
+    comm_phone: form.comm_phone,
+    residence_duration: form.residence_duration,
+    residence_owner: form.residence_owner,
+    telecom_operator: form.telecom_operator,
+
+    // 公司資料
+    company_name: form.company_name,
+    company_phone: form.company_phone,
+    company_address: form.company_address,
+    job_title: form.job_title,
+    monthly_income: form.monthly_income,
+    has_labor_insurance: form.has_labor_insurance,
+    company_tenure: form.company_tenure,
+
+    // 貸款資訊
+    demand_amount: form.demand_amount,
+    loan_amount: form.loan_amount,
+    loan_type: form.loan_type,
+    loan_term: form.loan_term,
+    interest_rate: form.interest_rate,
+
+    // 緊急聯絡人
+    emergency_contact_1_name: form.emergency_contact_1_name,
+    emergency_contact_1_relationship: form.emergency_contact_1_relationship,
+    emergency_contact_1_phone: form.emergency_contact_1_phone,
+    contact_time_1: form.contact_time_1,
+    confidential_1: form.confidential_1,
+    emergency_contact_2_name: form.emergency_contact_2_name,
+    emergency_contact_2_relationship: form.emergency_contact_2_relationship,
+    emergency_contact_2_phone: form.emergency_contact_2_phone,
+    contact_time_2: form.contact_time_2,
+    confidential_2: form.confidential_2,
+    referrer: form.referrer
+  }
+
+  console.log('🟢 CaseEditModal - transformFormToApiPayload - 所有欄位直接送出:', apiPayload)
+  return apiPayload
+}
+
+// 儲存案件
+const saveCase = async () => {
+  // 基本驗證
+  if (!form.customer_name.trim()) {
+    showError('請輸入客戶姓名')
+    return
+  }
+  if (!form.phone.trim()) {
+    showError('請輸入手機號碼')
+    return
+  }
+
+  // 如果通訊地址同戶籍地，確保複製
+  if (form.comm_address_same_as_home) {
+    form.comm_address = form.home_address
+  }
+
+  saving.value = true
+  try {
+    // 將表單資料轉換為 API 格式後再傳送
+    const apiPayload = transformFormToApiPayload()
+    emit('save', apiPayload)
+  } finally {
+    // 不在這裡設置 saving.value = false，讓父組件控制
+  }
+}
+
+// 格式化案件編號
+const formatCaseNumber = () => {
+  if (form.case_number) return form.case_number
+  if (!form.created_at || !form.id) return ''
+
+  const date = new Date(form.created_at)
+  const year = date.getFullYear().toString().slice(-2)
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const serial = String(form.id).padStart(3, '0')
+  return `CASE${year}${month}${day}${serial}`
+}
+
+// 格式化日期時間（與表格一致）
+const formatDateTime = (dateTime) => {
+  if (!dateTime) return ''
+  const date = new Date(dateTime)
+  const dateStr = date.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' })
+  const timeStr = date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })
+  return `${dateStr} ${timeStr}`
+}
+
+// 載入可用用戶列表
+const { getUsers } = useUsers()
+const loadUsers = async () => {
+  try {
+    const { success, users, error } = await getUsers({ per_page: 250 })
+    if (success && Array.isArray(users)) {
+      availableUsers.value = users
+    }
+  } catch (error) {
+    console.error('載入用戶列表失敗:', error)
+  }
+}
+
+// 監聽按鍵事件
+const handleKeydown = (event) => {
+  if (event.key === 'Escape' && props.isOpen && !saving.value) {
+    closeModal()
+  }
+}
+
+onMounted(() => {
+  loadUsers()
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
+
+// 當儲存完成後，父組件會關閉彈窗，此時重置 saving 狀態
+watch(() => props.isOpen, (isOpen) => {
+  if (!isOpen) {
+    saving.value = false
+  }
+})
+</script>
+
+<style scoped>
+/* 確保全螢幕樣式 */
+.fixed.inset-0 {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+/* 滾動條美化 */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+  height: 6px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+</style>

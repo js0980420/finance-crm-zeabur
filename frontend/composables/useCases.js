@@ -1,5 +1,5 @@
 export const useCases = () => {
-  const { get, put, post, delete: del } = useApi()
+  const { get, put, post, del } = useApi()
 
   const list = async (params = {}) => {
     const { data, error } = await get('/cases', params)

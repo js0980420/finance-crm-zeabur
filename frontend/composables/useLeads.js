@@ -1,5 +1,5 @@
 export const useLeads = () => {
-  const { get, put, del, post } = useApi()
+  const { get, put, del, post, patch } = useApi()
 
   const list = async (params = {}) => {
     const { data, error } = await get('/leads', params)
@@ -22,6 +22,18 @@ export const useLeads = () => {
 
   const updateOne = async (id, payload) => {
     return await put(`/leads/${id}`, payload)
+  }
+
+  /**
+   * 更新進線狀態
+   * @param {number} id - 進線 ID
+   * @param {string} status - 新狀態 (pending, tracking, intake, etc.)
+   * @returns {Promise} - API 回應
+   */
+  const updateStatus = async (id, status) => {
+    const { data, error } = await patch(`/leads/${id}/case-status`, { case_status: status })
+    if (error) return { success: false, error }
+    return { success: true, data }
   }
 
   const convertToCase = async (lead, payload) => {
@@ -64,5 +76,14 @@ export const useLeads = () => {
     return { success: true, data }
   }
 
-  return { list, listSubmittable, getOne, updateOne, removeOne, convertToCase, create }
+  return {
+    list,
+    listSubmittable,
+    getOne,
+    updateOne,
+    updateStatus,
+    removeOne,
+    convertToCase,
+    create
+  }
 }

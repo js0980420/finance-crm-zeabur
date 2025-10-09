@@ -1,895 +1,579 @@
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center">
-    <!-- 背景遮罩 -->
-    <div class="fixed inset-0 bg-black bg-opacity-50" @click="closeModal"></div>
+  <div v-if="isOpen" class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" @click.self="closeModal">
+    <div class="modal-dialog modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ isEdit ? '編輯案件' : '新增案件' }} [v2.0 已更新]</h5>
+          <div class="ms-auto d-flex align-items-center">
+            <button type="button" class="btn btn-secondary me-2" @click="triggerFileUpload">
+              <ArrowUpTrayIcon class="hero-icon" /> 上傳圖片
+            </button>
+            <button type="button" class="btn btn-secondary me-2" @click="exportCSV">
+              <ArrowDownTrayIcon class="hero-icon" /> 導出CSV
+            </button>
+            <button type="button" class="btn btn-light me-2" @click="closeModal" :disabled="saving">取消</button>
+            <button type="button" class="btn btn-dark" @click="saveCase" :disabled="saving">
+              {{ saving ? '儲存中...' : '儲存' }}
+            </button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <input type="file" ref="fileInput" @change="handleImageUpload" multiple accept="image/*" class="d-none">
+          <form @submit.prevent="saveCase" id="applicationForm">
+            <!-- 個人資料 -->
+            <div class="card mb-3">
+              <div class="card-header">個人資料</div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-auto form-group-row">
+                    <label for="name" class="form-label">姓名：</label>
+                    <input type="text" id="name" class="form-control" v-model="form.customer_name" required>
+                  </div>
+                  <div class="col-auto form-group-row">
+                    <label for="dob" class="form-label">出生年月日：</label>
+                    <input type="date" id="dob" class="form-control" v-model="form.birth_date">
+                  </div>
+                  <div class="col-auto form-group-row">
+                    <label for="idNumber" class="form-label">身份證字號：</label>
+                    <input type="text" id="idNumber" class="form-control" v-model="form.id_number" maxlength="10">
+                  </div>
+                  <div class="col-auto form-group-row">
+                    <label for="education" class="form-label">最高學歷：</label>
+                    <select id="education" class="form-select" v-model="form.education">
+                      <option value="">請選擇</option>
+                      <option value="國中">國中</option>
+                      <option value="高中">高中</option>
+                      <option value="專科">專科</option>
+                      <option value="大學">大學</option>
+                      <option value="碩士">碩士</option>
+                      <option value="博士">博士</option>
+                    </select>
+                  </div>
+                  <div class="col-auto form-group-row">
+                    <label for="mobile" class="form-label">手機號碼：</label>
+                    <input type="tel" id="mobile" class="form-control" v-model="form.phone" required>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-    <!-- 全螢幕彈窗 -->
-    <div class="relative w-full h-full max-w-none max-h-none bg-white overflow-hidden flex flex-col">
-      <!-- 標題列 -->
-      <div class="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shadow-sm">
-        <h2 class="text-xl font-semibold text-gray-900">
-          {{ isEdit ? '編輯案件' : '新增案件' }}
-        </h2>
-        <div class="flex space-x-3">
-          <button
-            type="button"
-            @click="closeModal"
-            class="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            取消
-          </button>
-          <button
-            type="button"
-            @click="saveCase"
-            :disabled="saving"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            {{ saving ? '儲存中...' : '儲存' }}
-          </button>
+            <!-- 聯絡資訊 -->
+            <div class="card mb-3">
+              <div class="card-header">聯絡資訊</div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-auto form-group-row">
+                    <label for="mailingPhone" class="form-label">通訊電話：</label>
+                    <input type="tel" id="mailingPhone" class="form-control" v-model="form.mailing_phone">
+                  </div>
+                  <div class="col-auto form-group-row">
+                    <label for="homePhone" class="form-label">室內電話：</label>
+                    <input type="tel" id="homePhone" class="form-control" v-model="form.landline_phone">
+                  </div>
+                  <div class="col-auto form-group-row">
+                    <label class="form-label">現居地住多久：</label>
+                    <div class="input-group duration-group">
+                      <input type="number" id="residenceDurationYears" class="form-control narrow-number-input" min="0" v-model="residenceDuration.years">
+                      <span class="input-group-text">年</span>
+                      <input type="number" id="residenceDurationMonths" class="form-control narrow-number-input" min="0" max="11" v-model="residenceDuration.months">
+                      <span class="input-group-text">月</span>
+                    </div>
+                  </div>
+                  <div class="col-auto form-group-row">
+                    <label for="residenceOwner" class="form-label">居住地持有人：</label>
+                    <select id="residenceOwner" class="form-select" v-model="form.residence_owner">
+                        <option value="">請選擇</option>
+                        <option value="本人">本人</option>
+                        <option value="父母">父母</option>
+                        <option value="配偶">配偶</option>
+                        <option value="租屋">租屋</option>
+                        <option value="其他">其他</option>
+                    </select>
+                  </div>
+                  <div class="col-auto form-group-row">
+                    <label for="telecom" class="form-label">電信業者：</label>
+                    <select id="telecom" class="form-select" v-model="form.telecom_operator">
+                      <option value="">請選擇</option>
+                      <option value="中華電信">中華電信</option>
+                      <option value="台灣大哥大">台灣大哥大</option>
+                      <option value="遠傳電信">遠傳電信</option>
+                      <option value="其他">其他</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="manual-br"></div>
+                <div class="row">
+                  <div class="col-lg-8 form-group-row">
+                    <label class="form-label">戶籍地址：</label>
+                    <div class="input-group address-group">
+                      <select class="form-select" v-model="homeAddress.city">
+                        <option value="">請選擇縣市</option>
+                        <option v-for="city in cities" :key="city" :value="city">{{ city }}</option>
+                      </select>
+                      <select class="form-select" v-model="homeAddress.district">
+                        <option value="">請選擇區域</option>
+                        <option v-for="district in homeDistricts" :key="district" :value="district">{{ district }}</option>
+                      </select>
+                      <input type="text" class="form-control" placeholder="街道巷弄號" v-model="homeAddress.street">
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-lg-8 form-group-row">
+                    <label class="form-label">通訊地址：[戶籍:{{homeAddress.city}}/{{homeAddress.district}} 通訊:{{commAddress.city}}/{{commAddress.district}}]</label>
+                    <div class="input-group address-group">
+                      <div class="input-group-text">
+                        <input class="form-check-input mt-0" type="checkbox" id="sameAsResidential" v-model="form.comm_address_same_as_home">
+                        <label class="form-check-label ms-2" for="sameAsResidential">同戶籍地</label>
+                      </div>
+                      <select class="form-select" v-model="commAddress.city" :disabled="form.comm_address_same_as_home">
+                        <option value="">請選擇縣市</option>
+                        <option v-for="city in cities" :key="city" :value="city">{{ city }}</option>
+                      </select>
+                      <select class="form-select" v-model="commAddress.district" :disabled="form.comm_address_same_as_home">
+                        <option value="">請選擇區域</option>
+                        <option v-for="district in commDistricts" :key="district" :value="district">{{ district }}</option>
+                      </select>
+                      <input type="text" class="form-control" placeholder="街道巷弄號" v-model="commAddress.street" :disabled="form.comm_address_same_as_home">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 公司資料 -->
+            <div class="card mb-3">
+                <div class="card-header">公司資料</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-auto form-group-row"><label for="email" class="form-label">電子郵件：</label><input type="email" id="email" class="form-control" v-model="form.email"></div>
+                        <div class="col-auto form-group-row"><label for="companyName" class="form-label">公司名稱：</label><input type="text" id="companyName" class="form-control" v-model="form.company_name"></div>
+                        <div class="col-auto form-group-row"><label for="companyPhone" class="form-label">公司電話：</label><input type="tel" id="companyPhone" class="form-control" v-model="form.company_phone"></div>
+                        <div class="col-auto form-group-row"><label for="jobTitle" class="form-label">職稱：</label><input type="text" id="jobTitle" class="form-control" v-model="form.job_title"></div>
+                        <div class="col-auto form-group-row">
+                          <label for="monthlyIncome" class="form-label">月收入(萬)：</label>
+                          <input type="number" id="monthlyIncome" class="form-control narrow-number-input" min="0" v-model="monthlyIncomeInMyriad">
+                        </div>
+                        <div class="col-auto form-group-row">
+                            <label class="form-label">目前公司在職多久：</label>
+                             <div class="input-group duration-group">
+                                <input type="number" id="timeAtCompanyYears" class="form-control narrow-number-input" min="0" v-model="companyTenure.years"><span class="input-group-text">年</span>
+                                <input type="number" id="timeAtCompanyMonths" class="form-control narrow-number-input" min="0" max="11" v-model="companyTenure.months"><span class="input-group-text">月</span>
+                            </div>
+                        </div>
+                        <div class="col-auto form-group-row">
+                            <label class="form-label">有無薪轉勞保：({{ form.has_labor_insurance }})</label>
+                            <div class="form-check form-check-inline">
+                              <input class="form-check-input" type="radio" name="insurance" id="insuranceYes" value="yes" v-model="form.has_labor_insurance">
+                              <label class="form-check-label" for="insuranceYes">有</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                              <input class="form-check-input" type="radio" name="insurance" id="insuranceNo" value="no" v-model="form.has_labor_insurance">
+                              <label class="form-check-label" for="insuranceNo">無</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="manual-br"></div>
+                    <div class="row">
+                        <div class="col-lg-8 form-group-row">
+                          <label class="form-label">公司地址：</label>
+                          <div class="input-group address-group">
+                              <select class="form-select" v-model="companyAddress.city">
+                                <option value="">請選擇縣市</option>
+                                <option v-for="city in cities" :key="city" :value="city">{{ city }}</option>
+                              </select>
+                              <select class="form-select" v-model="companyAddress.district">
+                                <option value="">請選擇區域</option>
+                                <option v-for="district in companyDistricts" :key="district" :value="district">{{ district }}</option>
+                              </select>
+                              <input type="text" id="companyAddressStreet" class="form-control" placeholder="街道巷弄號" v-model="companyAddress.street">
+                          </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 緊急聯絡人 -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    緊急聯絡人
+                    <button type="button" class="btn btn-secondary btn-sm" @click="showContact2 = true" v-if="!showContact2">新增聯絡人②</button>
+                </div>
+                <div class="card-body">
+                    <!-- 聯絡人 1 -->
+                    <div class="row">
+                        <div class="col-auto form-group-row"><label class="form-label">聯絡人①姓名：</label><input type="text" class="form-control" v-model="form.emergency_contact_1_name"></div>
+                        <div class="col-auto form-group-row"><label class="form-label">關係：</label>
+                            <select class="form-select" v-model="form.emergency_contact_1_relationship">
+                                <option value="">請選擇</option>
+                                <option value="父母">父母</option>
+                                <option value="兄弟姊妹">兄弟姊妹</option>
+                                <option value="配偶">配偶</option>
+                                <option value="子女">子女</option>
+                                <option value="朋友">朋友</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                        <div class="col-auto form-group-row"><label class="form-label">電話：</label><input type="tel" class="form-control" v-model="form.emergency_contact_1_phone"></div>
+                        <div class="col-auto form-group-row">
+                            <div class="form-check"><input class="form-check-input" type="checkbox" v-model="form.confidential_1"><label class="form-check-label">是否保密</label></div>
+                        </div>
+                    </div>
+                    <div class="manual-br"></div>
+                    <!-- 聯絡人 2 -->
+                    <div class="row" v-if="showContact2">
+                        <div class="col-auto form-group-row"><label class="form-label">聯絡人②姓名：</label><input type="text" class="form-control" v-model="form.emergency_contact_2_name"></div>
+                        <div class="col-auto form-group-row"><label class="form-label">關係：</label>
+                            <select class="form-select" v-model="form.emergency_contact_2_relationship">
+                                <option value="">請選擇</option>
+                                <option value="父母">父母</option>
+                                <option value="兄弟姊妹">兄弟姊妹</option>
+                                <option value="配偶">配偶</option>
+                                <option value="子女">子女</option>
+                                <option value="朋友">朋友</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                        <div class="col-auto form-group-row"><label class="form-label">電話：</label><input type="tel" class="form-control" v-model="form.emergency_contact_2_phone"></div>
+                        <div class="col-auto form-group-row">
+                            <div class="form-check"><input class="form-check-input" type="checkbox" v-model="form.confidential_2"><label class="form-check-label">是否保密</label></div>
+                        </div>
+                    </div>
+                    <div class="row">
+                         <div class="col-auto form-group-row"><label for="referrer" class="form-label">介紹人：</label><input type="text" id="referrer" class="form-control" v-model="form.referrer"></div>
+                    </div>
+                </div>
+            </div>
+          <!-- 附件 -->
+            <div class="card mb-3">
+              <div class="card-header">附件</div>
+              <div class="card-body">
+                <div v-if="form.images?.length || stagedImages.length" class="d-flex flex-wrap gap-2">
+                  <!-- Existing Images -->
+                  <div v-for="(image, index) in form.images" :key="index" class="position-relative">
+                    <img :src="image.url" class="img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;">
+                  </div>
+                  <!-- Staged Images -->
+                  <div v-for="(image, index) in stagedImages" :key="index" class="position-relative">
+                    <img :src="image.previewUrl" class="img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;">
+                    <button @click="removeStagedImage(index)" class="btn btn-danger btn-sm position-absolute top-0 end-0 rounded-circle" style="width: 24px; height: 24px; line-height: 1;">X</button>
+                  </div>
+                </div>
+                <div v-else class="text-muted">
+                  暫無附件
+                </div>
+              </div>
+            </div>
+          </form>
         </div>
       </div>
-
-      <!-- 6大區塊水平布局 -->
-      <form @submit.prevent="saveCase" class="flex-grow overflow-hidden">
-        <div class="h-full flex overflow-x-auto">
-          <!-- 區塊 1: 基本資訊 (與主表格相同欄位) -->
-          <div class="flex-shrink-0 w-80 border-r border-gray-200 overflow-y-auto bg-gray-50">
-            <div class="p-6">
-              <h3 class="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-300 sticky top-0 bg-gray-50">
-                基本資訊
-              </h3>
-              <div class="space-y-4">
-                <!-- 1. 案件狀態 (與表格 type: select 一致) -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">案件狀態</label>
-                  <select
-                    v-model="form.case_status"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option v-for="option in CASE_STATUS_OPTIONS" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </div>
-
-                <!-- 2. 業務等級 (追蹤管理特有，type: select) -->
-                <div v-if="showField('business_level')">
-                  <label class="block text-sm font-medium text-gray-700 mb-1">業務等級</label>
-                  <select
-                    v-model="form.business_level"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option v-for="option in BUSINESS_LEVEL_OPTIONS" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </div>
-
-                <!-- 3. 時間 (與表格格式一致) -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">建立時間</label>
-                  <input
-                    :value="formatDateTime(form.created_at)"
-                    type="text"
-                    readonly
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
-                  />
-                </div>
-
-                <!-- 5. 承辦業務 (type: user_select) -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">承辦業務</label>
-                  <select
-                    v-model="form.assigned_to"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">未指派</option>
-                    <option v-for="user in availableUsers" :key="user.id" :value="user.id">
-                      {{ user.name }}
-                    </option>
-                  </select>
-                </div>
-
-                <!-- 6. 來源管道 (type: select) -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">來源管道</label>
-                  <select
-                    v-model="form.channel"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">請選擇</option>
-                    <option v-for="option in CHANNEL_OPTIONS" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </div>
-
-                <!-- 7. 姓名 (type: text) -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">姓名 *</label>
-                  <input
-                    v-model="form.customer_name"
-                    type="text"
-                    required
-                    placeholder="請輸入姓名"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <!-- 8. LINE資訊 (包含顯示名稱和ID) -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">LINE顯示名稱</label>
-                  <input
-                    v-model="form.line_display_name"
-                    type="text"
-                    placeholder="請輸入LINE顯示名稱"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">LINE ID</label>
-                  <input
-                    v-model="form.line_id"
-                    type="text"
-                    placeholder="請輸入LINE ID"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <!-- 9. 諮詢項目 (type: select) -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">諮詢項目</label>
-                  <select
-                    v-model="form.loan_purpose"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">請選擇</option>
-                    <option v-for="option in PURPOSE_OPTIONS" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </div>
-
-                <!-- 10. 網站 (type: select) -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">網站</label>
-                  <select
-                    v-model="form.website"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">請選擇</option>
-                    <option v-for="option in WEBSITE_OPTIONS" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </div>
-
-                <!-- 11. 聯絡資訊 (Email + Phone) -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    v-model="form.email"
-                    type="email"
-                    placeholder="請輸入Email"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">手機號碼 *</label>
-                  <input
-                    v-model="form.phone"
-                    type="text"
-                    required
-                    placeholder="請輸入手機號碼"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 區塊 2: 個人資料 -->
-          <div class="flex-shrink-0 w-80 border-r border-gray-200 overflow-y-auto bg-white">
-            <div class="p-6">
-              <h3 class="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-300 sticky top-0 bg-white">
-                個人資料
-              </h3>
-              <div class="space-y-4">
-                <!-- 案件編號 (只在編輯視窗顯示) -->
-                <div v-if="isEdit">
-                  <label class="block text-sm font-medium text-gray-700 mb-1">案件編號</label>
-                  <input
-                    :value="formatCaseNumber()"
-                    type="text"
-                    readonly
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">出生年月日</label>
-                  <input
-                    v-model="form.birth_date"
-                    type="date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">身份證字號</label>
-                  <input
-                    v-model="form.id_number"
-                    type="text"
-                    maxlength="10"
-                    placeholder="請輸入身份證字號"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">最高學歷</label>
-                  <select
-                    v-model="form.education"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">請選擇</option>
-                    <option value="國中">國中</option>
-                    <option value="高中職">高中職</option>
-                    <option value="專科">專科</option>
-                    <option value="大學">大學</option>
-                    <option value="碩士">碩士</option>
-                    <option value="博士">博士</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 區塊 3: 聯絡資訊 -->
-          <div class="flex-shrink-0 w-80 border-r border-gray-200 overflow-y-auto bg-gray-50">
-            <div class="p-6">
-              <h3 class="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-300 sticky top-0 bg-gray-50">
-                聯絡資訊
-              </h3>
-              <div class="space-y-4">
-                <!-- 地區 -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">地區</label>
-                  <input
-                    v-model="form.customer_region"
-                    type="text"
-                    placeholder="請輸入地區"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">戶籍地址</label>
-                  <textarea
-                    v-model="form.home_address"
-                    rows="2"
-                    placeholder="請輸入戶籍地址"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">室內電話</label>
-                  <input
-                    v-model="form.landline_phone"
-                    type="text"
-                    placeholder="請輸入室內電話"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div class="flex items-center">
-                  <input
-                    v-model="form.comm_address_same_as_home"
-                    @change="handleCommAddressChange"
-                    type="checkbox"
-                    id="comm_address_same"
-                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label for="comm_address_same" class="ml-2 block text-sm text-gray-700">
-                    通訊地址同戶籍地
-                  </label>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">通訊地址</label>
-                  <textarea
-                    v-model="form.comm_address"
-                    :readonly="form.comm_address_same_as_home"
-                    rows="2"
-                    placeholder="請輸入通訊地址"
-                    :class="[
-                      'w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
-                      form.comm_address_same_as_home ? 'bg-gray-100' : 'bg-white'
-                    ]"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">通訊電話</label>
-                  <input
-                    v-model="form.comm_phone"
-                    type="text"
-                    placeholder="請輸入通訊電話"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">現居地住多久</label>
-                  <input
-                    v-model="form.residence_duration"
-                    type="text"
-                    placeholder="例：2年3個月"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">居住地持有人</label>
-                  <select
-                    v-model="form.residence_owner"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">請選擇</option>
-                    <option value="本人">本人</option>
-                    <option value="父母">父母</option>
-                    <option value="配偶">配偶</option>
-                    <option value="租屋">租屋</option>
-                    <option value="其他">其他</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">電信業者</label>
-                  <select
-                    v-model="form.telecom_operator"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">請選擇</option>
-                    <option value="中華電信">中華電信</option>
-                    <option value="台灣大哥大">台灣大哥大</option>
-                    <option value="遠傳電信">遠傳電信</option>
-                    <option value="亞太電信">亞太電信</option>
-                    <option value="台灣之星">台灣之星</option>
-                    <option value="其他">其他</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 區塊 4: 公司資料 -->
-          <div class="flex-shrink-0 w-80 border-r border-gray-200 overflow-y-auto bg-white">
-            <div class="p-6">
-              <h3 class="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-300 sticky top-0 bg-white">
-                公司資料
-              </h3>
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">公司名稱</label>
-                  <input
-                    v-model="form.company_name"
-                    type="text"
-                    placeholder="請輸入公司名稱"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">公司電話</label>
-                  <input
-                    v-model="form.company_phone"
-                    type="text"
-                    placeholder="請輸入公司電話"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">職稱</label>
-                  <input
-                    v-model="form.job_title"
-                    type="text"
-                    placeholder="請輸入職稱"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">公司地址</label>
-                  <textarea
-                    v-model="form.company_address"
-                    rows="2"
-                    placeholder="請輸入公司地址"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">月收入 (元)</label>
-                  <input
-                    v-model="form.monthly_income"
-                    type="number"
-                    step="1"
-                    placeholder="0"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div class="flex items-center">
-                  <input
-                    v-model="form.has_labor_insurance"
-                    type="checkbox"
-                    id="has_labor"
-                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label for="has_labor" class="ml-2 block text-sm text-gray-700">
-                    有無薪轉勞保
-                  </label>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">目前公司在職多久</label>
-                  <input
-                    v-model="form.company_tenure"
-                    type="text"
-                    placeholder="例：1年6個月"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 區塊 5: 貸款資訊 -->
-          <div class="flex-shrink-0 w-80 border-r border-gray-200 overflow-y-auto bg-gray-50">
-            <div class="p-6">
-              <h3 class="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-300 sticky top-0 bg-gray-50">
-                貸款資訊
-              </h3>
-              <div class="space-y-4">
-                <!-- 需求金額 -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">需求金額 (萬元)</label>
-                  <input
-                    v-model="form.demand_amount"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">貸款金額 (萬元)</label>
-                  <input
-                    v-model="form.loan_amount"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">貸款類型</label>
-                  <input
-                    v-model="form.loan_type"
-                    type="text"
-                    placeholder="請輸入貸款類型"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">貸款期數 (月)</label>
-                  <input
-                    v-model="form.loan_term"
-                    type="number"
-                    placeholder="0"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">利率 (%)</label>
-                  <input
-                    v-model="form.interest_rate"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">備註</label>
-                  <textarea
-                    v-model="form.notes"
-                    rows="4"
-                    placeholder="請輸入備註"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 區塊 6: 緊急聯絡人 -->
-          <div class="flex-shrink-0 w-80 overflow-y-auto bg-white">
-            <div class="p-6">
-              <h3 class="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-300 sticky top-0 bg-white">
-                緊急聯絡人
-              </h3>
-              <div class="space-y-6">
-                <!-- 聯絡人① -->
-                <div>
-                  <h4 class="text-md font-medium text-gray-800 mb-3">聯絡人①</h4>
-                  <div class="space-y-3">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
-                      <input
-                        v-model="form.emergency_contact_1_name"
-                        type="text"
-                        placeholder="請輸入姓名"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">關係</label>
-                      <select
-                        v-model="form.emergency_contact_1_relationship"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="">請選擇</option>
-                        <option value="父親">父親</option>
-                        <option value="母親">母親</option>
-                        <option value="配偶">配偶</option>
-                        <option value="子女">子女</option>
-                        <option value="兄弟姊妹">兄弟姊妹</option>
-                        <option value="朋友">朋友</option>
-                        <option value="同事">同事</option>
-                        <option value="其他">其他</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">電話</label>
-                      <input
-                        v-model="form.emergency_contact_1_phone"
-                        type="text"
-                        placeholder="請輸入電話"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">方便聯絡時間</label>
-                      <input
-                        v-model="form.contact_time_1"
-                        type="text"
-                        placeholder="例：平日上午"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                    <div class="flex items-center">
-                      <input
-                        v-model="form.confidential_1"
-                        type="checkbox"
-                        id="conf1"
-                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <label for="conf1" class="ml-2 block text-sm text-gray-700">
-                        保密聯絡
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 聯絡人② -->
-                <div>
-                  <h4 class="text-md font-medium text-gray-800 mb-3">聯絡人②</h4>
-                  <div class="space-y-3">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
-                      <input
-                        v-model="form.emergency_contact_2_name"
-                        type="text"
-                        placeholder="請輸入姓名"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">關係</label>
-                      <select
-                        v-model="form.emergency_contact_2_relationship"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="">請選擇</option>
-                        <option value="父親">父親</option>
-                        <option value="母親">母親</option>
-                        <option value="配偶">配偶</option>
-                        <option value="子女">子女</option>
-                        <option value="兄弟姊妹">兄弟姊妹</option>
-                        <option value="朋友">朋友</option>
-                        <option value="同事">同事</option>
-                        <option value="其他">其他</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">電話</label>
-                      <input
-                        v-model="form.emergency_contact_2_phone"
-                        type="text"
-                        placeholder="請輸入電話"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">方便聯絡時間</label>
-                      <input
-                        v-model="form.contact_time_2"
-                        type="text"
-                        placeholder="例：假日下午"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                    <div class="flex items-center">
-                      <input
-                        v-model="form.confidential_2"
-                        type="checkbox"
-                        id="conf2"
-                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <label for="conf2" class="ml-2 block text-sm text-gray-700">
-                        保密聯絡
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 介紹人 -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">介紹人</label>
-                  <input
-                    v-model="form.referrer"
-                    type="text"
-                    placeholder="請輸入介紹人"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </form>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useCaseManagement } from '~/composables/useCaseManagement'
+import { reactive, computed, watch, onMounted, ref } from 'vue'
 import { useNotification } from '~/composables/useNotification'
 import { useUsers } from '~/composables/useUsers'
 import {
   CASE_STATUS_OPTIONS,
   BUSINESS_LEVEL_OPTIONS,
-  CHANNEL_OPTIONS,
-  PURPOSE_OPTIONS,
-  WEBSITE_OPTIONS
 } from '~/composables/useCaseConfig'
+import { addressData } from '~/data/addressData'
+import { ArrowUpTrayIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
   case: { type: Object, default: null },
-  pageType: { type: String, default: 'pending' } // 用於判斷顯示哪些欄位
+  pageType: { type: String, default: 'pending' }
 })
 
 const emit = defineEmits(['close', 'save'])
 
-const { error: showError } = useNotification()
-
-// 儲存狀態
+const { error: showError, success } = useNotification()
 const saving = ref(false)
-
-// 可用用戶列表
 const availableUsers = ref([])
+const showContact2 = ref(false)
+const fileInput = ref(null)
+const stagedImages = ref([]) // For new images to be uploaded
 
-// 表單資料
 const form = reactive({
   id: null,
   case_status: 'pending',
   business_level: 'A',
-  created_at: null,
   assigned_to: '',
-  channel: '',
   customer_name: '',
-  line_display_name: '',
-  line_id: '',
-  loan_purpose: '',
-  website: '',
-  email: '',
   phone: '',
-  case_number: '',
+  email: '',
+  notes: '',
   birth_date: '',
   id_number: '',
   education: '',
-  customer_region: '',
-  home_address: '',
+  mailing_phone: '',
   landline_phone: '',
-  comm_address_same_as_home: false,
-  comm_address: '',
-  comm_phone: '',
   residence_duration: '',
   residence_owner: '',
   telecom_operator: '',
+  home_address: '',
+  comm_address_same_as_home: false,
+  comm_address: '',
   company_name: '',
   company_phone: '',
-  company_address: '',
   job_title: '',
   monthly_income: '',
-  has_labor_insurance: false,
   company_tenure: '',
-  demand_amount: '',
-  loan_amount: '',
-  loan_type: '',
-  loan_term: '',
-  interest_rate: '',
-  notes: '',
+  has_labor_insurance: 'no',
+  company_address: '',
   emergency_contact_1_name: '',
   emergency_contact_1_relationship: '',
   emergency_contact_1_phone: '',
-  contact_time_1: '',
   confidential_1: false,
   emergency_contact_2_name: '',
   emergency_contact_2_relationship: '',
   emergency_contact_2_phone: '',
-  contact_time_2: '',
   confidential_2: false,
-  referrer: ''
-})
+  referrer: '',
+  demand_amount: '',
+  images: [], // To hold existing images
+});
 
-// 判斷欄位是否顯示（根據頁面類型）
-const showField = (fieldKey) => {
-  // 業務等級只在追蹤管理頁面顯示
-  if (fieldKey === 'business_level') {
-    return props.pageType === 'tracking' || form.case_status === 'tracking'
+// --- Address Data ---
+const cities = Object.keys(addressData);
+
+const homeAddress = ref({ city: '', district: '', street: '' });
+const commAddress = ref({ city: '', district: '', street: '' });
+const companyAddress = ref({ city: '', district: '', street: '' });
+
+const homeDistricts = computed(() => homeAddress.value.city ? addressData[homeAddress.value.city] : []);
+const commDistricts = computed(() => commAddress.value.city ? addressData[commAddress.value.city] : []);
+const companyDistricts = computed(() => companyAddress.value.city ? addressData[companyAddress.value.city] : []);
+
+watch(homeAddress, (newVal) => {
+  form.home_address = `${newVal.city || ''}${newVal.district || ''}${newVal.street || ''}`;
+}, { deep: true });
+
+watch(commAddress, (newVal) => {
+  form.comm_address = `${newVal.city || ''}${newVal.district || ''}${newVal.street || ''}`;
+}, { deep: true });
+
+watch(companyAddress, (newVal) => {
+  form.company_address = `${newVal.city || ''}${newVal.district || ''}${newVal.street || ''}`;
+}, { deep: true });
+
+watch(() => homeAddress.value.city, (newCity, oldCity) => {
+  if (newCity !== oldCity) {
+    homeAddress.value.district = '';
   }
-  // 案件編號在特定狀態下顯示
-  if (fieldKey === 'case_number') {
-    return ['approved_disbursed', 'approved_undisbursed', 'conditional_approval', 'declined'].includes(props.pageType)
+});
+
+watch(() => commAddress.value.city, (newCity, oldCity) => {
+  if (newCity !== oldCity) {
+    commAddress.value.district = '';
   }
-  // 地區/地址在特定頁面隱藏
-  if (fieldKey === 'location') {
-    return !['pending', 'valid_customer', 'invalid_customer', 'customer_service', 'blacklist', 'tracking'].includes(props.pageType)
+});
+
+watch(() => companyAddress.value.city, (newCity, oldCity) => {
+  if (newCity !== oldCity) {
+    companyAddress.value.district = '';
   }
-  // 需求金額在特定頁面顯示
-  if (fieldKey === 'amount') {
-    return ['approved_disbursed', 'approved_undisbursed', 'conditional_approval', 'declined'].includes(props.pageType)
-  }
-  return true
+});
+
+function parseAddress(addressString) {
+    const address = addressString || '';
+    const city = cities.find(c => address.startsWith(c));
+    if (!city) return { city: '', district: '', street: address };
+    const districts = addressData[city] || [];
+    const district = districts.find(d => address.startsWith(`${city}${d}`));
+    const street = district ? address.substring(city.length + district.length) : address.substring(city.length);
+    return { city, district, street };
 }
 
-// 是否為編輯模式
-const isEdit = computed(() => !!props.case?.id)
 
-// 從 API 資料轉換為表單格式
-const transformApiPayloadToForm = (apiData) => {
-  if (!apiData) return null
+// --- Computed properties for complex fields ---
 
-  // 提取 payload 中的資料
-  const payload = apiData.payload || {}
+const monthlyIncomeInMyriad = computed({
+  get: () => form.monthly_income ? parseFloat((form.monthly_income / 10000).toFixed(2)) : null,
+  set: (val) => form.monthly_income = val ? val * 10000 : null
+});
 
-  return {
-    // 直接欄位
-    id: apiData.id || null,
-    case_status: apiData.case_status || apiData.status || 'pending',
-    business_level: apiData.business_level || 'A',
-    created_at: apiData.created_at || new Date().toISOString(),
-    assigned_to: apiData.assigned_to || '',
-    channel: apiData.channel || '',
-    customer_name: apiData.customer_name || '',
-    line_display_name: apiData.line_display_name || '',
-    line_id: apiData.line_id || '',
-    loan_purpose: apiData.loan_purpose || '',
-    website: apiData.website || '',
-    email: apiData.email || '',
-    phone: apiData.phone || '',
-    notes: apiData.notes || '',
+const demandAmountInMyriad = computed({
+  get: () => form.demand_amount ? parseFloat((form.demand_amount / 10000).toFixed(2)) : null,
+  set: (val) => form.demand_amount = val ? val * 10000 : null
+});
 
-    // 從 payload 提取的欄位
-    case_number: payload.case_number || '',
-    birth_date: payload.birth_date || '',
-    id_number: payload.id_number || '',
-    education: payload.education || '',
-    customer_region: payload.customer_region || '',
-    home_address: payload.home_address || '',
-    landline_phone: payload.landline_phone || '',
-    comm_address_same_as_home: payload.comm_address_same_as_home || false,
-    comm_address: payload.comm_address || '',
-    comm_phone: payload.comm_phone || '',
-    residence_duration: payload.residence_duration || '',
-    residence_owner: payload.residence_owner || '',
-    telecom_operator: payload.telecom_operator || '',
-    company_name: payload.company_name || '',
-    company_phone: payload.company_phone || '',
-    company_address: payload.company_address || '',
-    job_title: payload.job_title || '',
-    monthly_income: payload.monthly_income || '',
-    has_labor_insurance: payload.has_labor_insurance || false,
-    company_tenure: payload.company_tenure || '',
-    demand_amount: payload.demand_amount || '',
-    loan_amount: payload.loan_amount || '',
-    loan_type: payload.loan_type || '',
-    loan_term: payload.loan_term || '',
-    interest_rate: payload.interest_rate || '',
-    emergency_contact_1_name: payload.emergency_contact_1_name || '',
-    emergency_contact_1_relationship: payload.emergency_contact_1_relationship || '',
-    emergency_contact_1_phone: payload.emergency_contact_1_phone || '',
-    contact_time_1: payload.contact_time_1 || '',
-    confidential_1: payload.confidential_1 || false,
-    emergency_contact_2_name: payload.emergency_contact_2_name || '',
-    emergency_contact_2_relationship: payload.emergency_contact_2_relationship || '',
-    emergency_contact_2_phone: payload.emergency_contact_2_phone || '',
-    contact_time_2: payload.contact_time_2 || '',
-    confidential_2: payload.confidential_2 || false,
-    referrer: payload.referrer || ''
+const residenceDuration = computed({
+  get() {
+    const match = form.residence_duration?.match(/(\d+)年(\d+)月/) || [];
+    return { years: match[1] || null, months: match[2] || null };
+  },
+  set(val) {
+    form.residence_duration = `${val.years || 0}年${val.months || 0}月`;
   }
-}
+});
 
-// 監聽案件資料變更
+const companyTenure = computed({
+  get() {
+    const match = form.company_tenure?.match(/(\d+)年(\d+)月/) || [];
+    return { years: match[1] || null, months: match[2] || null };
+  },
+  set(val) {
+    form.company_tenure = `${val.years || 0}年${val.months || 0}月`;
+  }
+});
+
+// --- Watchers ---
+
 watch(() => props.case, (newCase) => {
   if (newCase) {
-    const transformedData = transformApiPayloadToForm(newCase)
-    Object.assign(form, transformedData)
-  } else {
-    form.created_at = new Date().toISOString()
-  }
-}, { immediate: true })
+    const payload = newCase.payload || {};
+    Object.assign(form, {
+      id: newCase.id,
+      case_status: newCase.case_status || 'pending',
+      business_level: newCase.business_level || 'A',
+      assigned_to: newCase.assigned_to || '',
+      customer_name: newCase.customer_name || newCase.name || '',
+      phone: newCase.phone || '',
+      email: newCase.email || '',
+      notes: newCase.notes || '',
+      birth_date: payload.birth_date || '',
+      id_number: payload.id_number || '',
+      education: newCase.education_level || payload.education || '',
+      mailing_phone: payload.mailing_phone || '',
+      landline_phone: payload.landline_phone || '',
+      residence_duration: payload.residence_duration || '',
+      residence_owner: payload.residence_owner || '',
+      telecom_operator: payload.telecom_operator || '',
+      home_address: payload.home_address || '',
+      comm_address_same_as_home: newCase.mailing_same_as_registered ?? payload.comm_address_same_as_home ?? false,
+      comm_address: payload.comm_address || '',
+      company_name: payload.company_name || '',
+      company_phone: payload.company_phone || '',
+      job_title: payload.job_title || '',
+      monthly_income: payload.monthly_income || '',
+      company_tenure: payload.company_tenure || '',
+      has_labor_insurance: (newCase.has_labor_insurance !== null && newCase.has_labor_insurance !== undefined)
+        ? (newCase.has_labor_insurance ? 'yes' : 'no')
+        : ((payload.has_labor_insurance !== null && payload.has_labor_insurance !== undefined)
+          ? (payload.has_labor_insurance ? 'yes' : 'no')
+          : 'no'),
+      company_address: payload.company_address || '',
+      emergency_contact_1_name: payload.emergency_contact_1_name || '',
+      emergency_contact_1_relationship: payload.emergency_contact_1_relationship || '',
+      emergency_contact_1_phone: payload.emergency_contact_1_phone || '',
+      confidential_1: payload.confidential_1 || false,
+      emergency_contact_2_name: payload.emergency_contact_2_name || '',
+      emergency_contact_2_relationship: payload.emergency_contact_2_relationship || '',
+      emergency_contact_2_phone: payload.emergency_contact_2_phone || '',
+      confidential_2: payload.confidential_2 || false,
+      referrer: payload.referrer || '',
+      demand_amount: payload.demand_amount || '',
+      images: newCase.images || [],
+    });
 
-// 關閉彈窗
+    homeAddress.value = parseAddress(form.home_address);
+    commAddress.value = parseAddress(form.comm_address);
+    companyAddress.value = parseAddress(form.company_address);
+    stagedImages.value = []; // Clear staged images when case changes
+
+    showContact2.value = !!(form.emergency_contact_2_name || form.emergency_contact_2_phone);
+  }
+}, { immediate: true, deep: true });
+
+watch(() => form.comm_address_same_as_home, (isSame) => {
+  if (isSame) {
+    // 立即同步戶籍地址到通訊地址
+    form.comm_address = form.home_address;
+
+    // 深度複製 homeAddress 的所有屬性到 commAddress
+    commAddress.value = {
+      city: homeAddress.value.city || '',
+      district: homeAddress.value.district || '',
+      street: homeAddress.value.street || ''
+    };
+
+    // 強制觸發下一個 tick 更新
+    nextTick(() => {
+      // 確保 UI 更新
+    });
+  }
+});
+
+watch(homeAddress, (newAddress) => {
+  // 構建完整的戶籍地址字串
+  form.home_address = `${newAddress.city || ''}${newAddress.district || ''}${newAddress.street || ''}`;
+
+  // 如果勾選同戶籍地址,即時同步到通訊地址
+  if (form.comm_address_same_as_home) {
+    form.comm_address = form.home_address;
+    commAddress.value = { ...newAddress };
+  }
+}, { deep: true });
+
+
+// --- Methods ---
+
+const isEdit = computed(() => !!props.case?.id);
+
 const closeModal = () => {
   if (!saving.value) {
-    emit('close')
+    emit('close');
   }
-}
+};
 
-// 處理通訊地址同步
-const handleCommAddressChange = () => {
-  if (form.comm_address_same_as_home) {
-    form.comm_address = form.home_address
+const triggerFileUpload = () => {
+  fileInput.value.click();
+};
+
+const handleImageUpload = (event) => {
+  const files = Array.from(event.target.files);
+  files.forEach(file => {
+    stagedImages.value.push({
+      file: file,
+      previewUrl: URL.createObjectURL(file)
+    });
+  });
+};
+
+const removeStagedImage = (index) => {
+  stagedImages.value.splice(index, 1);
+};
+
+const exportCSV = () => {
+  // Placeholder for CSV export logic
+  success('將導出CSV檔案');
+  console.log('Exporting CSV with data:', form);
+};
+
+const saveCase = async () => {
+  if (!form.customer_name.trim() || !form.phone.trim()) {
+    showError('姓名和手機號碼為必填項');
+    return;
   }
-}
+  saving.value = true;
 
-// 監聽戶籍地址變更
-watch(() => form.home_address, (newAddress) => {
-  if (form.comm_address_same_as_home) {
-    form.comm_address = newAddress
-  }
-})
-
-// 將表單資料轉換為 API 格式
-const transformFormToApiPayload = () => {
-  // 直接儲存在資料庫欄位的欄位
-  const directFields = {
+  // 所有欄位直接發送到後端，後端會保存到相應的資料表欄位
+  const apiPayload = {
     id: form.id,
-    customer_id: form.customer_id,
     case_status: form.case_status,
     assigned_to: form.assigned_to,
-    channel: form.channel,
-    source: form.source,
-    website: form.website,
+    name: form.customer_name,
     customer_name: form.customer_name,
     phone: form.phone,
     email: form.email,
-    line_id: form.line_id,
-    line_display_name: form.line_display_name,
-    loan_purpose: form.loan_purpose,
-    business_level: form.business_level,
     notes: form.notes,
-    created_at: form.created_at
-  }
+    business_level: form.business_level,
 
-  console.log('🔵 CaseEditModal - transformFormToApiPayload - 直接欄位:', directFields)
-
-  // 需要儲存在 payload JSON 欄位的額外欄位
-  const payloadFields = {
     // 個人資料
     birth_date: form.birth_date,
     id_number: form.id_number,
     education: form.education,
-    case_number: form.case_number,
 
     // 聯絡資訊
-    customer_region: form.customer_region,
     home_address: form.home_address,
     landline_phone: form.landline_phone,
     comm_address_same_as_home: form.comm_address_same_as_home,
     comm_address: form.comm_address,
-    comm_phone: form.comm_phone,
+    comm_phone: form.mailing_phone,
     residence_duration: form.residence_duration,
     residence_owner: form.residence_owner,
     telecom_operator: form.telecom_operator,
@@ -900,166 +584,115 @@ const transformFormToApiPayload = () => {
     company_address: form.company_address,
     job_title: form.job_title,
     monthly_income: form.monthly_income,
-    has_labor_insurance: form.has_labor_insurance,
+    has_labor_insurance: form.has_labor_insurance === 'yes' || form.has_labor_insurance === '1' || form.has_labor_insurance === 1 || form.has_labor_insurance === true,
     company_tenure: form.company_tenure,
 
     // 貸款資訊
     demand_amount: form.demand_amount,
-    loan_amount: form.loan_amount,
-    loan_type: form.loan_type,
-    loan_term: form.loan_term,
-    interest_rate: form.interest_rate,
 
     // 緊急聯絡人
     emergency_contact_1_name: form.emergency_contact_1_name,
     emergency_contact_1_relationship: form.emergency_contact_1_relationship,
     emergency_contact_1_phone: form.emergency_contact_1_phone,
-    contact_time_1: form.contact_time_1,
     confidential_1: form.confidential_1,
     emergency_contact_2_name: form.emergency_contact_2_name,
     emergency_contact_2_relationship: form.emergency_contact_2_relationship,
     emergency_contact_2_phone: form.emergency_contact_2_phone,
-    contact_time_2: form.contact_time_2,
     confidential_2: form.confidential_2,
-    referrer: form.referrer
-  }
 
-  const result = {
-    ...directFields,
-    payload: payloadFields
-  }
+    // 其他
+    referrer: form.referrer,
 
-  console.log('🟢 CaseEditModal - transformFormToApiPayload - 最終 API Payload:', result)
-  return result
-}
+    // 如果有新圖片，標記需要使用 FormData
+    hasImages: stagedImages.value.length > 0,
+    imageFiles: stagedImages.value.map(img => img.file),
+  };
 
-// 儲存案件
-const saveCase = async () => {
-  // 基本驗證
-  if (!form.customer_name.trim()) {
-    showError('請輸入客戶姓名')
-    return
-  }
-  if (!form.phone.trim()) {
-    showError('請輸入手機號碼')
-    return
-  }
+  emit('save', apiPayload);
 
-  // 如果通訊地址同戶籍地，確保複製
-  if (form.comm_address_same_as_home) {
-    form.comm_address = form.home_address
-  }
+  // The parent component will set saving to false after the API call.
+};
 
-  saving.value = true
+const showField = (fieldKey) => {
+  if (fieldKey === 'business_level') {
+    return props.pageType === 'tracking' || form.case_status === 'tracking';
+  }
+  return true;
+};
+
+// --- Lifecycle Hooks ---
+
+const { getUsers } = useUsers();
+onMounted(async () => {
   try {
-    // 將表單資料轉換為 API 格式後再傳送
-    const apiPayload = transformFormToApiPayload()
-    emit('save', apiPayload)
-  } finally {
-    // 不在這裡設置 saving.value = false，讓父組件控制
-  }
-}
+    const { success, users } = await getUsers({ per_page: 250 });
+    if (success) availableUsers.value = users;
+  } catch (e) { console.error(e); }
+});
 
-// 格式化案件編號
-const formatCaseNumber = () => {
-  if (form.case_number) return form.case_number
-  if (!form.created_at || !form.id) return ''
-
-  const date = new Date(form.created_at)
-  const year = date.getFullYear().toString().slice(-2)
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const serial = String(form.id).padStart(3, '0')
-  return `CASE${year}${month}${day}${serial}`
-}
-
-// 格式化日期時間（與表格一致）
-const formatDateTime = (dateTime) => {
-  if (!dateTime) return ''
-  const date = new Date(dateTime)
-  const dateStr = date.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' })
-  const timeStr = date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })
-  return `${dateStr} ${timeStr}`
-}
-
-// 載入可用用戶列表
-const { getUsers } = useUsers()
-const loadUsers = async () => {
-  try {
-    const { success, users, error } = await getUsers({ per_page: 250 })
-    if (success && Array.isArray(users)) {
-      availableUsers.value = users
-    }
-  } catch (error) {
-    console.error('載入用戶列表失敗:', error)
-  }
-}
-
-// 監聽按鍵事件
-const handleKeydown = (event) => {
-  if (event.key === 'Escape' && props.isOpen && !saving.value) {
-    closeModal()
-  }
-}
-
-onMounted(() => {
-  loadUsers()
-  document.addEventListener('keydown', handleKeydown)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown)
-})
-
-// 當儲存完成後，父組件會關閉彈窗，此時重置 saving 狀態
 watch(() => props.isOpen, (isOpen) => {
   if (!isOpen) {
-    saving.value = false
+    saving.value = false;
   }
-})
+});
 </script>
 
 <style scoped>
-/* 確保全螢幕樣式 */
-.fixed.inset-0 {
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
+/* Using Bootstrap via CDN, so most styles are global. Add specific overrides here if needed */
+.form-group-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 0.5rem;
 }
-
-/* 滾動條美化 */
-.overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
+.form-group-row .form-label {
+    margin-bottom: 0;
+    margin-right: 0.5rem;
+    white-space: nowrap;
 }
-
-.overflow-y-auto::-webkit-scrollbar-track {
-  background: #f1f1f1;
+.form-group-row .form-control, .form-group-row .form-select, .form-group-row .form-check, .form-group-row .input-group {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 120px;
 }
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
+.address-group .form-select {
+    min-width: 100px;
+    flex-grow: 0.5;
 }
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+.address-group .form-control {
+     flex-grow: 2;
 }
-
-.overflow-x-auto::-webkit-scrollbar {
-  height: 6px;
+.duration-group .form-control {
+    width: 80px;
+    flex: 0 1 auto;
 }
-
-.overflow-x-auto::-webkit-scrollbar-track {
-  background: #f1f1f1;
+.duration-group .input-group-text {
+    background: transparent;
+    border: none;
+    padding: 0 0.5rem;
 }
-
-.overflow-x-auto::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
+.narrow-number-input {
+    width: 80px !important;
+    flex: 0 1 auto !important;
 }
-
-.overflow-x-auto::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+.manual-br {
+    width: 100%;
+    height: 15px;
+}
+.modal-fullscreen {
+    width: 100vw;
+    max-width: none;
+    height: 100%;
+    margin: 0;
+}
+.modal-body {
+  overflow-y: auto;
+}
+.hero-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-right: 0.5rem;
+  display: inline-block;
+  vertical-align: middle;
 }
 </style>

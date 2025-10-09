@@ -1,3 +1,5 @@
+import { useThemeStore } from '~/stores/theme'
+
 export default defineNuxtPlugin(() => {
   // This plugin only runs on client side due to .client.js suffix
   const themeStore = useThemeStore()

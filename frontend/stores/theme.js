@@ -1,3 +1,4 @@
+import { defineStore } from 'pinia'
 export const useThemeStore = defineStore('theme', () => {
   const primaryColor = ref('#6366f1')
   const isDark = ref(false) // 預設為亮色模式

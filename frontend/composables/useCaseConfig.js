@@ -6,10 +6,10 @@
 // 狀態與路由映射
 export const STATUS_ROUTE_MAP = {
   pending: '/cases',
-  valid_customer: '/cases/valid-customer',
-  invalid_customer: '/cases/invalid-customer',
-  customer_service: '/cases/customer-service',
-  blacklist: '/cases/blacklist',
+  valid_customer: '/cases/valid-customers',
+  invalid_customer: '/cases/invalid-customers',
+  customer_service: '/cases/customer-services',
+  blacklist: '/cases/blacklists',
   approved_disbursed: '/cases/approved-disbursed',
   approved_undisbursed: '/cases/approved-undisbursed',
   conditional_approval: '/cases/conditional-approval',
