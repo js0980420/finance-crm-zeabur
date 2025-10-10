@@ -44,7 +44,7 @@ class CaseController extends Controller
             'loan_type' => $data['loan_type'] ?? null,
             'loan_term' => $data['loan_term'] ?? null,
             'interest_rate' => $data['interest_rate'] ?? null,
-            'status' => 'unassigned',
+            'case_status' => 'pending',
             'submitted_at' => now(),
             'notes' => $data['notes'] ?? null,
             'created_by' => Auth::id(),
@@ -73,12 +73,12 @@ class CaseController extends Controller
     {
         $query = CustomerCase::with(['customer']);
 
-        if ($request->has('status')) {
-            $status = $request->get('status');
+        if ($request->has('case_status')) {
+            $status = $request->get('case_status');
             if (is_array($status)) {
-                $query->whereIn('status', $status);
+                $query->whereIn('case_status', $status);
             } else {
-                $query->where('status', $status);
+                $query->where('case_status', $status);
             }
         }
 
@@ -138,7 +138,7 @@ class CaseController extends Controller
             'loan_type' => 'sometimes|nullable|string|max:50',
             'loan_term' => 'sometimes|nullable|integer|min:0',
             'interest_rate' => 'sometimes|nullable|numeric|min:0',
-            'status' => 'sometimes|in:unassigned,valid_customer,invalid_customer,customer_service,blacklist,approved_disbursed,approved_undisbursed,conditional_approval,rejected,tracking_management',
+            'case_status' => 'sometimes|in:pending,valid_customer,invalid_customer,customer_service,blacklist,approved_disbursed,approved_undisbursed,conditional_approval,declined,tracking',
             'approved_amount' => 'sometimes|nullable|numeric|min:0',
             'disbursed_amount' => 'sometimes|nullable|numeric|min:0',
             'rejection_reason' => 'sometimes|nullable|string',
@@ -151,23 +151,23 @@ class CaseController extends Controller
         $old = $case->toArray();
         $data = $validator->validated();
 
-        $statusChanged = array_key_exists('status', $data) && $data['status'] !== $case->status;
-        
+        $statusChanged = array_key_exists('case_status', $data) && $data['case_status'] !== $case->case_status;
+
         // 狀態轉換規範：10種狀態的流轉規則
         if ($statusChanged) {
-            $current = $case->status;
-            $new = $data['status'];
+            $current = $case->case_status;
+            $new = $data['case_status'];
             $validTransitions = [
-                'unassigned' => ['valid_customer', 'invalid_customer', 'customer_service', 'blacklist'],
-                'valid_customer' => ['approved_disbursed', 'approved_undisbursed', 'conditional_approval', 'rejected', 'tracking_management'],
+                'pending' => ['valid_customer', 'invalid_customer', 'customer_service', 'blacklist'],
+                'valid_customer' => ['tracking'],
                 'invalid_customer' => ['valid_customer'], // 可以重新評估為有效客
                 'customer_service' => ['valid_customer', 'invalid_customer', 'blacklist'],
-                'blacklist' => [], // 黑名單後不可再變更
+                'blacklist' => ['valid_customer', 'invalid_customer', 'customer_service'], // 黑名單可以變更
+                'tracking' => ['approved_disbursed', 'approved_undisbursed', 'conditional_approval', 'declined'],
                 'approved_disbursed' => [], // 已撥款不可再變更
                 'approved_undisbursed' => ['approved_disbursed'], // 可轉為已撥款
-                'conditional_approval' => ['approved_disbursed', 'approved_undisbursed', 'rejected'],
-                'rejected' => [], // 婉拒後不可再變更
-                'tracking_management' => ['valid_customer', 'approved_disbursed', 'approved_undisbursed', 'conditional_approval', 'rejected'],
+                'conditional_approval' => ['approved_disbursed', 'approved_undisbursed', 'declined'],
+                'declined' => [], // 婉拒後不可再變更
             ];
 
             if (!isset($validTransitions[$current]) || !in_array($new, $validTransitions[$current])) {
@@ -183,12 +183,12 @@ class CaseController extends Controller
             $data['status_updated_at'] = now();
             $data['status_updated_by'] = Auth::id();
 
-            switch ($data['status']) {
+            switch ($data['case_status']) {
                 case 'valid_customer':
                 case 'invalid_customer':
                 case 'customer_service':
                 case 'blacklist':
-                case 'tracking_management':
+                case 'tracking':
                     // 這些狀態需要指派業務
                     if (!$case->assigned_to && !isset($data['assigned_to'])) {
                         $data['assigned_to'] = Auth::id();
@@ -205,7 +205,7 @@ class CaseController extends Controller
                 case 'conditional_approval':
                     $data['approved_at'] = now();
                     break;
-                case 'rejected':
+                case 'declined':
                     $data['rejected_at'] = now();
                     break;
             }
@@ -216,7 +216,7 @@ class CaseController extends Controller
         // 同步更新 Customer 快照
         $customer = $case->customer;
         if ($statusChanged) {
-            $customer->case_status = $case->status;
+            $customer->case_status = $case->case_status;
         }
         if (array_key_exists('approved_amount', $data)) {
             $customer->approved_amount = $data['approved_amount'];
@@ -229,29 +229,29 @@ class CaseController extends Controller
         // 活動紀錄
         if ($statusChanged) {
             $statusLabels = CustomerCase::getStatusLabels();
-            $oldLabel = $statusLabels[$old['status'] ?? ''] ?? $old['status'] ?? 'unknown';
-            $newLabel = $statusLabels[$case->status] ?? $case->status;
+            $oldLabel = $statusLabels[$old['case_status'] ?? ''] ?? $old['case_status'] ?? 'unknown';
+            $newLabel = $statusLabels[$case->case_status] ?? $case->case_status;
 
             $typeMap = [
-                'unassigned' => CustomerActivity::TYPE_CASE_SUBMITTED,
+                'pending' => CustomerActivity::TYPE_CASE_SUBMITTED,
                 'valid_customer' => CustomerActivity::TYPE_UPDATED,
                 'invalid_customer' => CustomerActivity::TYPE_UPDATED,
                 'customer_service' => CustomerActivity::TYPE_UPDATED,
                 'blacklist' => CustomerActivity::TYPE_UPDATED,
+                'tracking' => CustomerActivity::TYPE_UPDATED,
                 'approved_disbursed' => CustomerActivity::TYPE_DISBURSED,
                 'approved_undisbursed' => CustomerActivity::TYPE_CASE_APPROVED,
                 'conditional_approval' => CustomerActivity::TYPE_CASE_APPROVED,
-                'rejected' => CustomerActivity::TYPE_CASE_REJECTED,
-                'tracking_management' => CustomerActivity::TYPE_UPDATED,
+                'declined' => CustomerActivity::TYPE_CASE_REJECTED,
             ];
 
             CustomerActivity::create([
                 'customer_id' => $case->customer_id,
                 'user_id' => Auth::id(),
-                'activity_type' => $typeMap[$case->status] ?? CustomerActivity::TYPE_UPDATED,
+                'activity_type' => $typeMap[$case->case_status] ?? CustomerActivity::TYPE_UPDATED,
                 'description' => "案件狀態變更：{$oldLabel} → {$newLabel}",
-                'old_data' => ['status' => $old['status'] ?? null],
-                'new_data' => ['status' => $case->status],
+                'old_data' => ['case_status' => $old['case_status'] ?? null],
+                'new_data' => ['case_status' => $case->case_status],
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -269,7 +269,7 @@ class CaseController extends Controller
             'customer_email' => 'nullable|email|max:255',
             'consultation_item' => 'nullable|string|max:255',
             'demand_amount' => 'nullable|numeric|min:0',
-            'status' => 'sometimes|in:pending,unassigned,valid_customer,invalid_customer,customer_service,blacklist,approved_disbursed,approved_undisbursed,conditional_approval,rejected,tracking_management',  // 加入 pending
+            'case_status' => 'sometimes|in:pending,valid_customer,invalid_customer,customer_service,blacklist,approved_disbursed,approved_undisbursed,conditional_approval,declined,tracking',
             'assigned_to' => 'sometimes|nullable|exists:users,id',
             'channel' => 'nullable|string|max:255',
             'website_source' => 'nullable|string|max:255',
@@ -282,7 +282,7 @@ class CaseController extends Controller
 
         $data = $validator->validated();
         $data['case_number'] = CustomerCase::generateCaseNumber();
-        $data['status'] = $data['status'] ?? 'unassigned';
+        $data['case_status'] = $data['case_status'] ?? 'pending';
         $data['created_by'] = Auth::id();
 
         if (!empty($data['assigned_to'])) {
@@ -329,9 +329,9 @@ class CaseController extends Controller
     // GET /api/cases/status-summary - 各狀態案件數量統計
     public function statusSummary()
     {
-        $statusCounts = CustomerCase::selectRaw('status, COUNT(*) as count')
-            ->groupBy('status')
-            ->pluck('count', 'status')
+        $statusCounts = CustomerCase::selectRaw('case_status, COUNT(*) as count')
+            ->groupBy('case_status')
+            ->pluck('count', 'case_status')
             ->toArray();
 
         $labels = CustomerCase::getStatusLabels();

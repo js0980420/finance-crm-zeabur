@@ -126,8 +126,8 @@ class ReportController extends Controller
                 'website_source',
                 DB::raw('count(*) as total_leads'),
                 DB::raw('sum(case when status = "converted" then 1 else 0 end) as converted_leads'),
-                DB::raw('count(case when case_status = "submitted" then 1 end) as submitted_cases'),
-                DB::raw('count(case when case_status = "approved" then 1 end) as approved_cases'),
+                DB::raw('count(case when case_status = "pending" then 1 end) as submitted_cases'),
+                DB::raw('count(case when case_status in ("approved_disbursed", "approved_undisbursed", "conditional_approval") then 1 end) as approved_cases'),
                 DB::raw('sum(approved_amount) as total_approved_amount'),
                 DB::raw('sum(disbursed_amount) as total_disbursed_amount')
             )
@@ -238,8 +238,8 @@ class ReportController extends Controller
         $dailyRates = CustomerCase::select(
                 DB::raw('DATE(created_at) as date'),
                 DB::raw('count(*) as total_cases'),
-                DB::raw('sum(case when status = "approved" then 1 else 0 end) as approved_cases'),
-                DB::raw('sum(case when status = "rejected" then 1 else 0 end) as rejected_cases')
+                DB::raw('sum(case when case_status in ("approved_disbursed", "approved_undisbursed", "conditional_approval") then 1 else 0 end) as approved_cases'),
+                DB::raw('sum(case when case_status = "declined" then 1 else 0 end) as rejected_cases')
             )
             ->whereBetween('created_at', [$startDate, $endDate])
             ->groupBy(DB::raw('DATE(created_at)'))
@@ -260,9 +260,9 @@ class ReportController extends Controller
         // Overall statistics
         $totalCases = CustomerCase::whereBetween('created_at', [$startDate, $endDate])->count();
         $approvedCases = CustomerCase::whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'approved')->count();
+            ->whereIn('case_status', ['approved_disbursed', 'approved_undisbursed', 'conditional_approval'])->count();
         $rejectedCases = CustomerCase::whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'rejected')->count();
+            ->where('case_status', 'declined')->count();
 
         return response()->json([
             'period' => ['from' => $dateFrom, 'to' => $dateTo],

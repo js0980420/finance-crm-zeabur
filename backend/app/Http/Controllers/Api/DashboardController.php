@@ -63,10 +63,10 @@ class DashboardController extends Controller
             ]);
 
             $stats['total_cases'] = $caseQuery->count();
-            $stats['approved_cases'] = (clone $caseQuery)->where('status', 'approved')->count();
-            $stats['disbursed_cases'] = (clone $caseQuery)->where('status', 'disbursed')->count();
+            $stats['approved_cases'] = (clone $caseQuery)->whereIn('case_status', ['approved_disbursed', 'approved_undisbursed', 'conditional_approval'])->count();
+            $stats['disbursed_cases'] = (clone $caseQuery)->where('case_status', 'approved_disbursed')->count();
             $stats['total_loan_amount'] = (clone $caseQuery)->sum('loan_amount') ?: 0;
-            $stats['total_disbursed_amount'] = (clone $caseQuery)->where('status', 'disbursed')->sum('disbursed_amount') ?: 0;
+            $stats['total_disbursed_amount'] = (clone $caseQuery)->where('case_status', 'approved_disbursed')->sum('disbursed_amount') ?: 0;
 
             // Approval rate
             $stats['approval_rate'] = $stats['total_cases'] > 0 
@@ -132,8 +132,8 @@ class DashboardController extends Controller
             if ($user->isManager()) {
                 $caseQuery = CustomerCase::whereBetween('created_at', [$startOfMonth, $endOfMonth]);
                 $monthData['total_cases'] = $caseQuery->count();
-                $monthData['approved_cases'] = (clone $caseQuery)->where('status', 'approved')->count();
-                $monthData['disbursed_amount'] = (clone $caseQuery)->where('status', 'disbursed')->sum('disbursed_amount') ?: 0;
+                $monthData['approved_cases'] = (clone $caseQuery)->whereIn('case_status', ['approved_disbursed', 'approved_undisbursed', 'conditional_approval'])->count();
+                $monthData['disbursed_amount'] = (clone $caseQuery)->where('case_status', 'approved_disbursed')->sum('disbursed_amount') ?: 0;
             }
 
             $monthlyData[] = $monthData;

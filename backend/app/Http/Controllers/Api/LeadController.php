@@ -185,7 +185,7 @@ class LeadController extends Controller
     {
         $user = Auth::user();
         $query = CustomerLead::with(['customer','assignee'])
-            ->whereIn('status', ['intake', 'approved']);
+            ->whereIn('case_status', ['valid_customer', 'tracking']);
 
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
