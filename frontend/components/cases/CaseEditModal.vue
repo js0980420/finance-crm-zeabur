@@ -3,7 +3,7 @@
     <div class="modal-dialog modal-fullscreen">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">{{ isEdit ? '編輯案件' : '新增案件' }} [v2.0 已更新]</h5>
+          <h5 class="modal-title">{{ isEdit ? '編輯案件' : '新增案件' }}</h5>
           <div class="ms-auto d-flex align-items-center">
             <button type="button" class="btn btn-secondary me-2" @click="triggerFileUpload">
               <ArrowUpTrayIcon class="hero-icon" /> 上傳圖片
@@ -120,11 +120,11 @@
                 </div>
                 <div class="row">
                   <div class="col-lg-8 form-group-row">
-                    <label class="form-label">通訊地址：[戶籍:{{homeAddress.city}}/{{homeAddress.district}} 通訊:{{commAddress.city}}/{{commAddress.district}}]</label>
+                    <label class="form-label">通訊地址：</label>
                     <div class="input-group address-group">
                       <div class="input-group-text">
-                        <input class="form-check-input mt-0" type="checkbox" id="sameAsResidential" v-model="form.comm_address_same_as_home">
-                        <label class="form-check-label ms-2" for="sameAsResidential">同戶籍地</label>
+                        <input class="form-check-input mt-0" type="checkbox" id="sameAsResidential" v-model="form.comm_address_same_as_home" @change="syncHomeToComm" style="width: 20px; height: 20px; cursor: pointer;">
+                        <label class="form-check-label ms-2" for="sameAsResidential" style="cursor: pointer;">同戶籍地</label>
                       </div>
                       <select class="form-select" v-model="commAddress.city" :disabled="form.comm_address_same_as_home">
                         <option value="">請選擇縣市</option>
@@ -162,14 +162,9 @@
                             </div>
                         </div>
                         <div class="col-auto form-group-row">
-                            <label class="form-label">有無薪轉勞保：({{ form.has_labor_insurance }})</label>
-                            <div class="form-check form-check-inline">
-                              <input class="form-check-input" type="radio" name="insurance" id="insuranceYes" value="yes" v-model="form.has_labor_insurance">
-                              <label class="form-check-label" for="insuranceYes">有</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                              <input class="form-check-input" type="radio" name="insurance" id="insuranceNo" value="no" v-model="form.has_labor_insurance">
-                              <label class="form-check-label" for="insuranceNo">無</label>
+                            <div class="form-check">
+                              <input class="form-check-input" type="checkbox" id="hasLaborInsurance" :checked="form.has_labor_insurance === 'yes' || form.has_labor_insurance === true" @change="form.has_labor_insurance = $event.target.checked ? 'yes' : 'no'" style="width: 20px; height: 20px; cursor: pointer;">
+                              <label class="form-check-label" for="hasLaborInsurance" style="cursor: pointer; margin-left: 8px;">有無薪轉勞保</label>
                             </div>
                         </div>
                     </div>
@@ -272,7 +267,7 @@
 </template>
 
 <script setup>
-import { reactive, computed, watch, onMounted, ref } from 'vue'
+import { reactive, computed, watch, onMounted, ref, nextTick } from 'vue'
 import { useNotification } from '~/composables/useNotification'
 import { useUsers } from '~/composables/useUsers'
 import {
@@ -435,38 +430,39 @@ watch(() => props.case, (newCase) => {
       phone: newCase.phone || '',
       email: newCase.email || '',
       notes: newCase.notes || '',
-      birth_date: payload.birth_date || '',
-      id_number: payload.id_number || '',
-      education: newCase.education_level || payload.education || '',
-      mailing_phone: payload.mailing_phone || '',
-      landline_phone: payload.landline_phone || '',
-      residence_duration: payload.residence_duration || '',
-      residence_owner: payload.residence_owner || '',
-      telecom_operator: payload.telecom_operator || '',
-      home_address: payload.home_address || '',
-      comm_address_same_as_home: newCase.mailing_same_as_registered ?? payload.comm_address_same_as_home ?? false,
-      comm_address: payload.comm_address || '',
-      company_name: payload.company_name || '',
-      company_phone: payload.company_phone || '',
-      job_title: payload.job_title || '',
-      monthly_income: payload.monthly_income || '',
-      company_tenure: payload.company_tenure || '',
+      // 優先從模型欄位讀取，fallback 到 payload
+      birth_date: newCase.birth_date || payload.birth_date || '',
+      id_number: newCase.id_number || payload.id_number || '',
+      education: newCase.education || payload.education || '',
+      mailing_phone: newCase.comm_phone || payload.mailing_phone || payload.comm_phone || '',
+      landline_phone: newCase.landline_phone || payload.landline_phone || '',
+      residence_duration: newCase.residence_duration || payload.residence_duration || '',
+      residence_owner: newCase.residence_owner || payload.residence_owner || '',
+      telecom_operator: newCase.telecom_operator || payload.telecom_operator || '',
+      home_address: newCase.home_address || payload.home_address || '',
+      comm_address_same_as_home: newCase.comm_address_same_as_home ?? payload.comm_address_same_as_home ?? false,
+      comm_address: newCase.comm_address || payload.comm_address || '',
+      company_name: newCase.company_name || payload.company_name || '',
+      company_phone: newCase.company_phone || payload.company_phone || '',
+      job_title: newCase.job_title || payload.job_title || '',
+      monthly_income: newCase.monthly_income || payload.monthly_income || '',
+      company_tenure: newCase.company_tenure || payload.company_tenure || '',
       has_labor_insurance: (newCase.has_labor_insurance !== null && newCase.has_labor_insurance !== undefined)
         ? (newCase.has_labor_insurance ? 'yes' : 'no')
         : ((payload.has_labor_insurance !== null && payload.has_labor_insurance !== undefined)
           ? (payload.has_labor_insurance ? 'yes' : 'no')
           : 'no'),
-      company_address: payload.company_address || '',
-      emergency_contact_1_name: payload.emergency_contact_1_name || '',
-      emergency_contact_1_relationship: payload.emergency_contact_1_relationship || '',
-      emergency_contact_1_phone: payload.emergency_contact_1_phone || '',
+      company_address: newCase.company_address || payload.company_address || '',
+      emergency_contact_1_name: newCase.emergency_contact_1_name || payload.emergency_contact_1_name || '',
+      emergency_contact_1_relationship: newCase.emergency_contact_1_relationship || payload.emergency_contact_1_relationship || '',
+      emergency_contact_1_phone: newCase.emergency_contact_1_phone || payload.emergency_contact_1_phone || '',
       confidential_1: payload.confidential_1 || false,
       emergency_contact_2_name: payload.emergency_contact_2_name || '',
       emergency_contact_2_relationship: payload.emergency_contact_2_relationship || '',
       emergency_contact_2_phone: payload.emergency_contact_2_phone || '',
       confidential_2: payload.confidential_2 || false,
-      referrer: payload.referrer || '',
-      demand_amount: payload.demand_amount || '',
+      referrer: newCase.referrer || payload.referrer || '',
+      demand_amount: newCase.demand_amount || payload.demand_amount || '',
       images: newCase.images || [],
     });
 
@@ -481,36 +477,35 @@ watch(() => props.case, (newCase) => {
 
 watch(() => form.comm_address_same_as_home, (isSame) => {
   if (isSame) {
-    // 立即同步戶籍地址到通訊地址
+    commAddress.value.city = homeAddress.value.city;
+    commAddress.value.district = homeAddress.value.district;
+    commAddress.value.street = homeAddress.value.street;
     form.comm_address = form.home_address;
-
-    // 深度複製 homeAddress 的所有屬性到 commAddress
-    commAddress.value = {
-      city: homeAddress.value.city || '',
-      district: homeAddress.value.district || '',
-      street: homeAddress.value.street || ''
-    };
-
-    // 強制觸發下一個 tick 更新
-    nextTick(() => {
-      // 確保 UI 更新
-    });
   }
 });
 
 watch(homeAddress, (newAddress) => {
-  // 構建完整的戶籍地址字串
   form.home_address = `${newAddress.city || ''}${newAddress.district || ''}${newAddress.street || ''}`;
-
-  // 如果勾選同戶籍地址,即時同步到通訊地址
   if (form.comm_address_same_as_home) {
+    commAddress.value.city = newAddress.city;
+    commAddress.value.district = newAddress.district;
+    commAddress.value.street = newAddress.street;
     form.comm_address = form.home_address;
-    commAddress.value = { ...newAddress };
   }
 }, { deep: true });
 
 
 // --- Methods ---
+
+const syncHomeToComm = () => {
+  if (form.comm_address_same_as_home) {
+    // 強制同步所有地址資料
+    commAddress.value.city = homeAddress.value.city;
+    commAddress.value.district = homeAddress.value.district;
+    commAddress.value.street = homeAddress.value.street;
+    form.comm_address = form.home_address;
+  }
+};
 
 const isEdit = computed(() => !!props.case?.id);
 
@@ -539,9 +534,123 @@ const removeStagedImage = (index) => {
 };
 
 const exportCSV = () => {
-  // Placeholder for CSV export logic
-  success('將導出CSV檔案');
-  console.log('Exporting CSV with data:', form);
+  const data = form;
+  let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // Add BOM for Chinese characters
+
+  const fieldLabels = {
+    id: '案件ID',
+    case_status: '案件狀態',
+    business_level: '業務等級',
+    assigned_to: '承辦業務',
+    customer_name: '姓名',
+    phone: '手機號碼',
+    email: '電子郵件',
+    notes: '備註',
+    birth_date: '出生年月日',
+    id_number: '身份證字號',
+    education: '最高學歷',
+    mailing_phone: '通訊電話',
+    landline_phone: '室內電話',
+    residence_duration: '現居地住多久',
+    residence_owner: '居住地持有人',
+    telecom_operator: '電信業者',
+    home_address_city: '戶籍地址-縣市',
+    home_address_district: '戶籍地址-區域',
+    home_address_street: '戶籍地址-街道巷弄號',
+    comm_address_same_as_home: '通訊地址同戶籍地',
+    comm_address_city: '通訊地址-縣市',
+    comm_address_district: '通訊地址-區域',
+    comm_address_street: '通訊地址-街道巷弄號',
+    company_name: '公司名稱',
+    company_phone: '公司電話',
+    job_title: '職稱',
+    monthly_income: '月收入',
+    company_tenure: '目前公司在職多久',
+    has_labor_insurance: '有無薪轉勞保',
+    company_address_city: '公司地址-縣市',
+    company_address_district: '公司地址-區域',
+    company_address_street: '公司地址-街道巷弄號',
+    emergency_contact_1_name: '聯絡人①姓名',
+    emergency_contact_1_relationship: '聯絡人①關係',
+    emergency_contact_1_phone: '聯絡人①電話',
+    confidential_1: '聯絡人①是否保密',
+    emergency_contact_2_name: '聯絡人②姓名',
+    emergency_contact_2_relationship: '聯絡人②關係',
+    emergency_contact_2_phone: '聯絡人②電話',
+    confidential_2: '聯絡人②是否保密',
+    referrer: '介紹人',
+    demand_amount: '資金需求',
+  };
+
+  // Determine the actual headers to use, including dynamic ones
+  let actualHeaders = Object.keys(fieldLabels);
+
+  // Add image URLs as headers if any
+  if (data.images && data.images.length > 0) {
+    for (let i = 0; i < data.images.length; i++) {
+      actualHeaders.push(`image_url_${i + 1}`);
+      fieldLabels[`image_url_${i + 1}`] = `圖片URL_${i + 1}`; // Add to labels
+    }
+  }
+
+  // Generate CSV header row
+  csvContent += actualHeaders.map(headerKey => `"${fieldLabels[headerKey] || headerKey}"`).join(',') + '\r\n';
+
+  // Generate CSV data row
+  const values = actualHeaders.map(headerKey => {
+    if (headerKey.startsWith('home_address_')) {
+      const part = headerKey.replace('home_address_', '');
+      return `"${homeAddress.value[part] || ''}"`;
+    }
+    if (headerKey.startsWith('comm_address_')) {
+      const part = headerKey.replace('comm_address_', '');
+      return `"${commAddress.value[part] || ''}"`;
+    }
+    if (headerKey.startsWith('company_address_')) {
+      const part = headerKey.replace('company_address_', '');
+      return `"${companyAddress.value[part] || ''}"`;
+    }
+    if (headerKey.startsWith('image_url_')) {
+      const index = parseInt(headerKey.replace('image_url_', '')) - 1;
+      return `"${(data.images && data.images[index]?.url) || ''}"`;
+    }
+    // Handle specific field values
+    if (headerKey === 'case_status') {
+      const statusOption = CASE_STATUS_OPTIONS.find(opt => opt.value === data[headerKey]);
+      return `"${statusOption ? statusOption.label : (data[headerKey] || '')}"`;
+    }
+    if (headerKey === 'has_labor_insurance') {
+      return `"${data[headerKey] === 'yes' ? '有' : '無'}"`;
+    }
+    if (['comm_address_same_as_home', 'confidential_1', 'confidential_2'].includes(headerKey)) {
+      return `"${data[headerKey] ? '是' : '否'}"`;
+    }
+    if (headerKey === 'residence_duration') {
+      return `"${residenceDuration.value.years || 0}年${residenceDuration.value.months || 0}月"`;
+    }
+    if (headerKey === 'company_tenure') {
+      return `"${companyTenure.value.years || 0}年${companyTenure.value.months || 0}月"`;
+    }
+    if (headerKey === 'monthly_income') {
+      return `"${monthlyIncomeInMyriad.value !== null ? monthlyIncomeInMyriad.value + '萬' : ''}"`;
+    }
+    if (headerKey === 'demand_amount') {
+      return `"${demandAmountInMyriad.value !== null ? demandAmountInMyriad.value + '萬' : ''}"`;
+    }
+    // Default for other fields
+    return `"${data[headerKey] || ''}"`;
+  }).join(',');
+  csvContent += values + '\r\n';
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `case_export_${data.id || 'new'}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  success('案件資料已導出為 CSV 檔案');
 };
 
 const saveCase = async () => {
@@ -694,5 +803,41 @@ watch(() => props.isOpen, (isOpen) => {
   margin-right: 0.5rem;
   display: inline-block;
   vertical-align: middle;
+}
+
+.form-check-input[type="radio"]:checked {
+  background-color: black !important;
+  border-color: black !important;
+  background-image: none !important; /* Remove default inner circle image */
+}
+
+.form-check-input[type="checkbox"]:checked {
+  background-color: black !important;
+  border-color: black !important;
+  /* Bootstrap's default checkmark is usually white on a colored background */
+}
+
+.form-check-input[type="radio"]:checked {
+  background-color: black;
+  border-color: black;
+  background-image: none; /* Remove default inner circle image */
+}
+
+.form-check-input[type="checkbox"]:checked {
+  background-color: black;
+  border-color: black;
+  /* Bootstrap's default checkmark is usually white on a colored background */
+}
+
+.form-check-input[type="radio"]:checked {
+  background-color: black;
+  border-color: black;
+  background-image: none; /* Remove default inner circle image */
+}
+
+.form-check-input[type="checkbox"]:checked {
+  background-color: black;
+  border-color: black;
+  /* Bootstrap's default checkmark is usually white on a colored background */
 }
 </style>
