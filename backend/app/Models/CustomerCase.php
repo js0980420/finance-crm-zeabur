@@ -126,23 +126,23 @@ class CustomerCase extends Model
     /**
      * 案件狀態常數 - 10種狀態系統
      */
-    // 網路進線區塊 (1種)
-    const STATUS_UNASSIGNED = 'unassigned';                    // 未指派
+    // 進線區塊 (1種)
+    const STATUS_PENDING = 'pending';                          // 待處理
 
-    // 網路進線管理區塊 (4種)
+    // 進線管理區塊 (4種)
     const STATUS_VALID_CUSTOMER = 'valid_customer';            // 有效客
     const STATUS_INVALID_CUSTOMER = 'invalid_customer';        // 無效客
     const STATUS_CUSTOMER_SERVICE = 'customer_service';        // 客服
     const STATUS_BLACKLIST = 'blacklist';                      // 黑名單
 
-    // 送件管理區塊 (4種)
+    // 案件管理區塊 (4種)
     const STATUS_APPROVED_DISBURSED = 'approved_disbursed';    // 核准撥款
     const STATUS_APPROVED_UNDISBURSED = 'approved_undisbursed'; // 核准未撥
     const STATUS_CONDITIONAL_APPROVAL = 'conditional_approval'; // 附條件
-    const STATUS_REJECTED = 'rejected';                        // 婉拒
+    const STATUS_DECLINED = 'declined';                        // 婉拒
 
-    // 業務管理區塊 (1種)
-    const STATUS_TRACKING_MANAGEMENT = 'tracking_management';  // 追蹤管理
+    // 業務追蹤區塊 (1種)
+    const STATUS_TRACKING = 'tracking';                        // 追蹤中
 
     /**
      * 取得案件狀態顯示名稱對應
@@ -150,16 +150,16 @@ class CustomerCase extends Model
     public static function getStatusLabels(): array
     {
         return [
-            self::STATUS_UNASSIGNED => '未指派',
+            self::STATUS_PENDING => '待處理',
             self::STATUS_VALID_CUSTOMER => '有效客',
             self::STATUS_INVALID_CUSTOMER => '無效客',
             self::STATUS_CUSTOMER_SERVICE => '客服',
             self::STATUS_BLACKLIST => '黑名單',
+            self::STATUS_TRACKING => '追蹤中',
             self::STATUS_APPROVED_DISBURSED => '核准撥款',
             self::STATUS_APPROVED_UNDISBURSED => '核准未撥',
             self::STATUS_CONDITIONAL_APPROVAL => '附條件',
-            self::STATUS_REJECTED => '婉拒',
-            self::STATUS_TRACKING_MANAGEMENT => '追蹤管理',
+            self::STATUS_DECLINED => '婉拒',
         ];
     }
 
@@ -170,7 +170,7 @@ class CustomerCase extends Model
     {
         return [
             '網路進線' => [
-                self::STATUS_UNASSIGNED => '未指派',
+                self::STATUS_PENDING => '待處理',
             ],
             '網路進線管理' => [
                 self::STATUS_VALID_CUSTOMER => '有效客',
@@ -178,14 +178,14 @@ class CustomerCase extends Model
                 self::STATUS_CUSTOMER_SERVICE => '客服',
                 self::STATUS_BLACKLIST => '黑名單',
             ],
+            '業務管理' => [
+                self::STATUS_TRACKING => '追蹤中',
+            ],
             '送件管理' => [
                 self::STATUS_APPROVED_DISBURSED => '核准撥款',
                 self::STATUS_APPROVED_UNDISBURSED => '核准未撥',
                 self::STATUS_CONDITIONAL_APPROVAL => '附條件',
-                self::STATUS_REJECTED => '婉拒',
-            ],
-            '業務管理' => [
-                self::STATUS_TRACKING_MANAGEMENT => '追蹤管理',
+                self::STATUS_DECLINED => '婉拒',
             ],
         ];
     }
