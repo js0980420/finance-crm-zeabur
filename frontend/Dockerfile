@@ -1,28 +1,34 @@
-# Nuxt 前端 - 開發模式配置
-FROM node:20-alpine
+FROM node:22-alpine
 
-WORKDIR /app
+LABEL "language"="nodejs"
+LABEL "framework"="nuxt.js"
 
-# 安裝編譯依賴
-RUN apk add --no-cache python3 make g++
-
-# 複製 package files
-COPY package*.json ./
-
-# 安裝依賴包（包含開發依賴）
-RUN npm install
-
-# 複製源碼
-COPY . .
-
-# 設定開發環境變數
-ENV NODE_ENV=development
+# 生產模式環境變數
+ENV NODE_ENV=production
 ENV NUXT_HOST=0.0.0.0
 ENV NUXT_PORT=8080
-ENV PORT=8080
+ENV NUXT_PUBLIC_API_BASE_URL=https://laravel-api.zeabur.app/api
 
-# 暴露端口
+WORKDIR /src
+
+# 安裝 pnpm
+RUN npm install -g pnpm@9
+
+# 複製前端檔案
+COPY frontend/ /src
+
+# 只安裝生產依賴
+RUN pnpm install --prod --frozen-lockfile
+
+# 建置應用程式
+RUN pnpm build
+
+# 移除開發依賴和不必要檔案以減少映像檔大小
+RUN pnpm prune --prod && \
+    rm -rf .nuxt/cache && \
+    rm -rf node_modules/.cache
+
 EXPOSE 8080
 
-# 使用開發模式啟動
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8080"]
+# 啟動生產伺服器
+CMD ["node", ".output/server/index.mjs"]
