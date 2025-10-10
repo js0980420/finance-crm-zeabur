@@ -747,7 +747,8 @@ const saveEdit = async (apiPayload) => {
       Object.keys(apiPayload).forEach(key => {
         if (key !== 'hasImages' && key !== 'imageFiles') {
           const value = apiPayload[key]
-          if (value !== null && value !== undefined && value !== '') {
+          // 允許發送空字串，這樣可以清空欄位
+          if (value !== null && value !== undefined) {
             // 布林值轉為 1 或 0
             if (typeof value === 'boolean') {
               formData.append(key, value ? '1' : '0')
