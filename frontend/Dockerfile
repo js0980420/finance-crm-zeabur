@@ -22,5 +22,5 @@ RUN npm run build
 
 EXPOSE 8080
 
-# 啟動生產伺服器
-CMD ["node", ".output/server/index.mjs"]
+# 啟動生產伺服器 - 修正為 Zeabur preset 的輸出路徑
+CMD ["node", ".zeabur/output/index.mjs"]
