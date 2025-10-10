@@ -11,22 +11,14 @@ ENV NUXT_PUBLIC_API_BASE_URL=https://laravel-api.zeabur.app/api
 
 WORKDIR /src
 
-# 安裝 pnpm
-RUN npm install -g pnpm@9
-
 # 複製前端檔案
 COPY frontend/ /src
 
-# 只安裝生產依賴
-RUN pnpm install --prod --frozen-lockfile
+# 安裝依賴（使用 npm，因為有 package-lock.json）
+RUN npm install
 
 # 建置應用程式
-RUN pnpm build
-
-# 移除開發依賴和不必要檔案以減少映像檔大小
-RUN pnpm prune --prod && \
-    rm -rf .nuxt/cache && \
-    rm -rf node_modules/.cache
+RUN npm run build
 
 EXPOSE 8080
 
