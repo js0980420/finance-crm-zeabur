@@ -105,4 +105,12 @@ class CustomerLead extends Model
     {
         return $this->belongsTo(Website::class, 'source', 'domain');
     }
+
+    /**
+     * 案件圖片
+     */
+    public function images()
+    {
+        return $this->hasMany(CaseImage::class, 'case_id');
+    }
 }
