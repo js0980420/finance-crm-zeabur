@@ -424,6 +424,12 @@ const companyTenure = computed({
 
 watch(() => props.case, (newCase) => {
   if (newCase) {
+    console.log('🔵 CaseEditModal - watch props.case 觸發', {
+      newCaseId: newCase.id,
+      newCaseName: newCase.name || newCase.customer_name,
+      hasId: !!newCase.id
+    });
+
     const payload = newCase.payload || {};
     Object.assign(form, {
       id: newCase.id,
@@ -659,7 +665,25 @@ const saveCase = async () => {
     showError('姓名和手機號碼為必填項');
     return;
   }
+
+  // 檢查是否為編輯模式但缺少 ID
+  if (isEdit.value && !form.id) {
+    console.error('❌ CaseEditModal - 編輯模式但缺少 ID', {
+      isEdit: isEdit.value,
+      formId: form.id,
+      propsCase: props.case
+    });
+    showError('錯誤：無法識別要編輯的案件');
+    return;
+  }
+
   saving.value = true;
+
+  console.log('🟢 CaseEditModal - saveCase 開始', {
+    isEdit: isEdit.value,
+    formId: form.id,
+    formName: form.name
+  });
 
   // 所有欄位直接發送到後端，後端會保存到相應的資料表欄位
   const apiPayload = {
