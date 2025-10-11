@@ -23,7 +23,7 @@ export const useApi = () => {
     }
 
     // 生產環境預設
-    return 'https://finance-crm.zeabur.app'
+    return 'https://laravel-api.zeabur.app'
   }
 
   const baseURL = getApiBaseUrl()
@@ -197,3 +197,4 @@ export const useApi = () => {
     patch
   }
 }
+
