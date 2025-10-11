@@ -110,7 +110,7 @@ export const UNIFIED_TABLE_COLUMNS = [
   },
   // 7. 姓名
   {
-    key: "customer_name",
+    key: "name",
     title: "姓名",
     sortable: true,
     width: "100px",
@@ -197,23 +197,7 @@ export const UNIFIED_TABLE_COLUMNS = [
       return emailLine + phoneLine
     }
   },
-  // 12. 地區/地址
-  {
-    key: "location",
-    title: "地區/地址",
-    sortable: false,
-    width: "130px",
-    hidden: true,
-    formatter: (value, item) => {
-      const region = item.payload?.['所在地區'] || ''
-      const address = item.payload?.['房屋地址'] || ''
-      if (!region && !address) return '-'
-      const parts = []
-      if (region) parts.push(region)
-      if (address) parts.push(address)
-      return parts.join(' ')
-    }
-  },
+
   // 13. 需求金額
   {
     key: "amount",
@@ -269,7 +253,7 @@ export const getTableColumnsForPage = (pageType = 'default') => {
         'datetime',
         'assignee',
         'channel',
-        'customer_name',
+        'name',
         'line_info',
         'loan_purpose', // Changed from 'purpose'
         'website',      // Changed from 'website_name'
@@ -285,7 +269,7 @@ export const getTableColumnsForPage = (pageType = 'default') => {
         'datetime',          // 3. 進線時間
         'assignee',          // 4. 承辦業務
         'channel',           // 5. 來源管道
-        'customer_name',     // 6. 客戶姓名
+        'name',     // 6. 客戶姓名
         'line_info',         // 7. LINE資訊
         'loan_purpose',      // 8. 諮詢項目 (修正為 loan_purpose)
         'website',           // 9. 網站 (修正為 website)
@@ -303,7 +287,7 @@ export const getTableColumnsForPage = (pageType = 'default') => {
         'datetime',
         'assignee',
         'channel',
-        'customer_name',
+        'name',
         'line_info',
         'loan_purpose',
         'contact_info',
@@ -320,7 +304,7 @@ export const getTableColumnsForPage = (pageType = 'default') => {
         'case_number',
         'datetime',
         'assignee',
-        'customer_name',
+        'name',
         'line_info',
         'loan_purpose',
         'amount',
@@ -334,7 +318,7 @@ export const getTableColumnsForPage = (pageType = 'default') => {
         'case_status',
         'datetime',
         'assignee',
-        'customer_name',
+        'name',
         'actions'
       ];
       break;

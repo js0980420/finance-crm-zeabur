@@ -75,6 +75,14 @@ export const WEBSITE_OPTIONS = Array.from({ length: 10 }, (_, i) => ({
   label: `G${i + 1}`
 }))
 
+// 可聯繫時間選項
+export const CONTACT_TIME_OPTIONS = [
+  { value: '早上', label: '早上' },
+  { value: '下午', label: '下午' },
+  { value: '晚上', label: '晚上' },
+  { value: '其他', label: '其他' }
+]
+
 // 網路進線適用的案件狀態選項
 export const CASE_STATUS_NAVIGATION_OPTIONS = CASE_STATUS_OPTIONS.filter(opt =>
   ['leads', 'leads_management'].includes(opt.category)
