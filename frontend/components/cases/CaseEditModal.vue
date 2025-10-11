@@ -27,7 +27,7 @@
                 <div class="row">
                   <div class="col-auto form-group-row">
                     <label for="name" class="form-label">姓名：</label>
-                    <input type="text" id="name" class="form-control" v-model="form.customer_name" required>
+                    <input type="text" id="name" class="form-control" v-model="form.name" required>
                   </div>
                   <div class="col-auto form-group-row">
                     <label for="dob" class="form-label">出生年月日：</label>
@@ -63,8 +63,14 @@
               <div class="card-body">
                 <div class="row">
                   <div class="col-auto form-group-row">
-                    <label for="mailingPhone" class="form-label">通訊電話：</label>
-                    <input type="tel" id="mailingPhone" class="form-control" v-model="form.mailing_phone">
+                    <label for="contactTime" class="form-label">可聯繫時間：</label>
+                    <select id="contactTime" class="form-select" v-model="form.contact_time">
+                      <option value="">請選擇</option>
+                      <option value="早上">早上</option>
+                      <option value="下午">下午</option>
+                      <option value="晚上">晚上</option>
+                      <option value="其他">其他</option>
+                    </select>
                   </div>
                   <div class="col-auto form-group-row">
                     <label for="homePhone" class="form-label">室內電話：</label>
@@ -106,15 +112,15 @@
                   <div class="col-lg-8 form-group-row">
                     <label class="form-label">戶籍地址：</label>
                     <div class="input-group address-group">
-                      <select class="form-select" v-model="homeAddress.city">
+                      <select class="form-select" v-model="form.city">
                         <option value="">請選擇縣市</option>
                         <option v-for="city in cities" :key="city" :value="city">{{ city }}</option>
                       </select>
-                      <select class="form-select" v-model="homeAddress.district">
+                      <select class="form-select" v-model="form.district">
                         <option value="">請選擇區域</option>
                         <option v-for="district in homeDistricts" :key="district" :value="district">{{ district }}</option>
                       </select>
-                      <input type="text" class="form-control" placeholder="街道巷弄號" v-model="homeAddress.street">
+                      <input type="text" class="form-control" placeholder="街道巷弄號" v-model="form.street">
                     </div>
                   </div>
                 </div>
@@ -297,19 +303,22 @@ const form = reactive({
   case_status: 'pending',
   business_level: 'A',
   assigned_to: '',
-  customer_name: '',
+  name: '',
   phone: '',
   email: '',
   notes: '',
   birth_date: '',
   id_number: '',
   education: '',
-  mailing_phone: '',
+
+  contact_time: '',
   landline_phone: '',
   residence_duration: '',
   residence_owner: '',
   telecom_operator: '',
-  home_address: '',
+  city: '',
+  district: '',
+  street: '',
   comm_address_same_as_home: false,
   comm_address: '',
   company_name: '',
@@ -335,17 +344,12 @@ const form = reactive({
 // --- Address Data ---
 const cities = Object.keys(addressData);
 
-const homeAddress = ref({ city: '', district: '', street: '' });
 const commAddress = ref({ city: '', district: '', street: '' });
 const companyAddress = ref({ city: '', district: '', street: '' });
 
-const homeDistricts = computed(() => homeAddress.value.city ? addressData[homeAddress.value.city] : []);
+const homeDistricts = computed(() => form.city ? addressData[form.city] : []);
 const commDistricts = computed(() => commAddress.value.city ? addressData[commAddress.value.city] : []);
 const companyDistricts = computed(() => companyAddress.value.city ? addressData[companyAddress.value.city] : []);
-
-watch(homeAddress, (newVal) => {
-  form.home_address = `${newVal.city || ''}${newVal.district || ''}${newVal.street || ''}`;
-}, { deep: true });
 
 watch(commAddress, (newVal) => {
   form.comm_address = `${newVal.city || ''}${newVal.district || ''}${newVal.street || ''}`;
@@ -354,12 +358,6 @@ watch(commAddress, (newVal) => {
 watch(companyAddress, (newVal) => {
   form.company_address = `${newVal.city || ''}${newVal.district || ''}${newVal.street || ''}`;
 }, { deep: true });
-
-watch(() => homeAddress.value.city, (newCity, oldCity) => {
-  if (newCity !== oldCity) {
-    homeAddress.value.district = '';
-  }
-});
 
 watch(() => commAddress.value.city, (newCity, oldCity) => {
   if (newCity !== oldCity) {
@@ -370,6 +368,12 @@ watch(() => commAddress.value.city, (newCity, oldCity) => {
 watch(() => companyAddress.value.city, (newCity, oldCity) => {
   if (newCity !== oldCity) {
     companyAddress.value.district = '';
+  }
+});
+
+watch(() => form.city, (newCity, oldCity) => {
+  if (newCity !== oldCity) {
+    form.district = '';
   }
 });
 
@@ -426,7 +430,7 @@ watch(() => props.case, (newCase) => {
       case_status: newCase.case_status || 'pending',
       business_level: newCase.business_level || 'A',
       assigned_to: newCase.assigned_to || '',
-      customer_name: newCase.customer_name || newCase.name || '',
+      name: newCase.name || newCase.customer_name || '',
       phone: newCase.phone || '',
       email: newCase.email || '',
       notes: newCase.notes || '',
@@ -434,12 +438,14 @@ watch(() => props.case, (newCase) => {
       birth_date: newCase.birth_date || payload.birth_date || '',
       id_number: newCase.id_number || payload.id_number || '',
       education: newCase.education || payload.education || '',
-      mailing_phone: newCase.comm_phone || payload.mailing_phone || payload.comm_phone || '',
+      contact_time: newCase.contact_time || payload.contact_time || '',
       landline_phone: newCase.landline_phone || payload.landline_phone || '',
       residence_duration: newCase.residence_duration || payload.residence_duration || '',
       residence_owner: newCase.residence_owner || payload.residence_owner || '',
       telecom_operator: newCase.telecom_operator || payload.telecom_operator || '',
-      home_address: newCase.home_address || payload.home_address || '',
+      city: newCase.city || '',
+      district: newCase.district || '',
+      street: newCase.street || '',
       comm_address_same_as_home: newCase.comm_address_same_as_home ?? payload.comm_address_same_as_home ?? false,
       comm_address: newCase.comm_address || payload.comm_address || '',
       company_name: newCase.company_name || payload.company_name || '',
@@ -466,7 +472,6 @@ watch(() => props.case, (newCase) => {
       images: newCase.images || [],
     });
 
-    homeAddress.value = parseAddress(form.home_address);
     commAddress.value = parseAddress(form.comm_address);
     companyAddress.value = parseAddress(form.company_address);
     stagedImages.value = []; // Clear staged images when case changes
@@ -477,22 +482,19 @@ watch(() => props.case, (newCase) => {
 
 watch(() => form.comm_address_same_as_home, (isSame) => {
   if (isSame) {
-    commAddress.value.city = homeAddress.value.city;
-    commAddress.value.district = homeAddress.value.district;
-    commAddress.value.street = homeAddress.value.street;
-    form.comm_address = form.home_address;
+    commAddress.value.city = form.city;
+    commAddress.value.district = form.district;
+    commAddress.value.street = form.street;
   }
 });
 
-watch(homeAddress, (newAddress) => {
-  form.home_address = `${newAddress.city || ''}${newAddress.district || ''}${newAddress.street || ''}`;
+watch([() => form.city, () => form.district, () => form.street], ([newCity, newDistrict, newStreet]) => {
   if (form.comm_address_same_as_home) {
-    commAddress.value.city = newAddress.city;
-    commAddress.value.district = newAddress.district;
-    commAddress.value.street = newAddress.street;
-    form.comm_address = form.home_address;
+    commAddress.value.city = newCity;
+    commAddress.value.district = newDistrict;
+    commAddress.value.street = newStreet;
   }
-}, { deep: true });
+});
 
 
 // --- Methods ---
@@ -500,10 +502,9 @@ watch(homeAddress, (newAddress) => {
 const syncHomeToComm = () => {
   if (form.comm_address_same_as_home) {
     // 強制同步所有地址資料
-    commAddress.value.city = homeAddress.value.city;
-    commAddress.value.district = homeAddress.value.district;
-    commAddress.value.street = homeAddress.value.street;
-    form.comm_address = form.home_address;
+    commAddress.value.city = form.city;
+    commAddress.value.district = form.district;
+    commAddress.value.street = form.street;
   }
 };
 
@@ -542,14 +543,14 @@ const exportCSV = () => {
     case_status: '案件狀態',
     business_level: '業務等級',
     assigned_to: '承辦業務',
-    customer_name: '姓名',
+    name: '姓名',
     phone: '手機號碼',
     email: '電子郵件',
     notes: '備註',
     birth_date: '出生年月日',
     id_number: '身份證字號',
     education: '最高學歷',
-    mailing_phone: '通訊電話',
+    contact_time: '可聯繫時間',
     landline_phone: '室內電話',
     residence_duration: '現居地住多久',
     residence_owner: '居住地持有人',
@@ -600,7 +601,7 @@ const exportCSV = () => {
   const values = actualHeaders.map(headerKey => {
     if (headerKey.startsWith('home_address_')) {
       const part = headerKey.replace('home_address_', '');
-      return `"${homeAddress.value[part] || ''}"`;
+      return `"${form[part] || ''}"`;
     }
     if (headerKey.startsWith('comm_address_')) {
       const part = headerKey.replace('comm_address_', '');
@@ -654,7 +655,7 @@ const exportCSV = () => {
 };
 
 const saveCase = async () => {
-  if (!form.customer_name.trim() || !form.phone.trim()) {
+  if (!form.name.trim() || !form.phone.trim()) {
     showError('姓名和手機號碼為必填項');
     return;
   }
@@ -665,8 +666,7 @@ const saveCase = async () => {
     id: form.id,
     case_status: form.case_status,
     assigned_to: form.assigned_to,
-    name: form.customer_name,
-    customer_name: form.customer_name,
+    name: form.name,
     phone: form.phone,
     email: form.email,
     notes: form.notes,
@@ -678,11 +678,13 @@ const saveCase = async () => {
     education: form.education,
 
     // 聯絡資訊
-    home_address: form.home_address,
+    contact_time: form.contact_time,
+    city: form.city,
+    district: form.district,
+    street: form.street,
     landline_phone: form.landline_phone,
     comm_address_same_as_home: form.comm_address_same_as_home,
     comm_address: form.comm_address,
-    comm_phone: form.mailing_phone,
     residence_duration: form.residence_duration,
     residence_owner: form.residence_owner,
     telecom_operator: form.telecom_operator,
