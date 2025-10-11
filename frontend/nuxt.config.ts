@@ -1,4 +1,11 @@
 export default defineNuxtConfig({
+  app: {
+    head: {
+      link: [
+        { rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css' }
+      ]
+    }
+  },
   devtools: { enabled: false },
   // 開發模式使用 SSR 避免 503 錯誤，實際渲染邏輯在客戶端
   ssr: true,

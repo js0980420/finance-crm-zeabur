@@ -1,0 +1,223 @@
+import { ref, readonly, computed } from 'vue';
+import { useMockDataStore } from '~/stores/mockData';
+
+export const useCases = () => {
+  const { get, put, post, _delete } = useApi(); // 引入 _delete
+  const config = useRuntimeConfig();
+  const isMockMode = config.public.apiBaseUrl === '/mock-api';
+
+  const mockDataStore = isMockMode ? useMockDataStore() : null;
+  const cases = isMockMode && mockDataStore ? mockDataStore.cases : ref([]); // 直接引用或使用 ref
+  const totalCases = ref(0);
+  const loading = ref(false);
+  const error = ref(null);
+
+  const fetchTotalCases = async () => {
+    if (isMockMode) {
+      if (mockDataStore) {
+        totalCases.value = mockDataStore.cases.length;
+      }
+      return;
+    }
+    try {
+      const { data, error: apiError } = await get('/cases', { limit: 1 });
+      if (apiError) {
+        console.error('Failed to fetch total cases:', apiError);
+        return;
+      }
+      totalCases.value = data.total || 0;
+    } catch (err) {
+      console.error('An error occurred while fetching total cases:', err);
+    }
+  };
+
+  const fetchCases = async (params = {}) => {
+    loading.value = true;
+    error.value = null;
+
+    if (isMockMode) {
+      if (!mockDataStore) {
+        error.value = new Error('Mock data store not initialized in mock mode.');
+        loading.value = false;
+        return { success: false, error: error.value };
+      }
+      try {
+        let filteredCases = mockDataStore.cases;
+        if (params.case_status) {
+          filteredCases = filteredCases.filter(c => c.case_status === params.case_status);
+        }
+        // Simple client-side pagination for mock mode
+        const perPage = params.per_page || 15;
+        const currentPage = params.page || 1;
+        const start = (currentPage - 1) * perPage;
+        const end = start + perPage;
+        const paginatedCases = filteredCases.slice(start, end);
+
+        totalCases.value = filteredCases.length;
+
+        return {
+          success: true,
+          items: JSON.parse(JSON.stringify(paginatedCases)), // 返回深拷貝
+          meta: {
+            total: filteredCases.length,
+            perPage: perPage,
+            currentPage: currentPage,
+            lastPage: Math.ceil(filteredCases.length / perPage)
+          }
+        };
+      } catch (err) {
+        error.value = err;
+        cases.value = [];
+        return { success: false, error: err };
+      } finally {
+        loading.value = false;
+      }
+    }
+
+    // Original API mode logic
+    try {
+      const { data, error: apiError } = await get('/cases', params);
+      if (apiError) {
+        error.value = apiError;
+        cases.value = [];
+        return { success: false, error: apiError };
+      }
+      cases.value = data.data || [];
+      if (!params.page) {
+        totalCases.value = data.total || 0;
+      }
+      return {
+        success: true,
+        items: data.data || [],
+        meta: {
+          perPage: data.per_page || params.per_page || 15,
+          currentPage: data.current_page || params.page || 1,
+          lastPage: data.last_page || 1
+        }
+      };
+    } catch (err) {
+      error.value = err;
+      cases.value = [];
+      return { success: false, error: err };
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const list = async (params = {}) => {
+    if (isMockMode) {
+      if (!mockDataStore) return { success: false, error: new Error('Mock data store not initialized in mock mode.') };
+      
+      let filteredCases = mockDataStore.cases;
+      if (params.case_status) {
+        filteredCases = filteredCases.filter(c => c.case_status === params.case_status);
+      }
+      if (params.customer_id) {
+        filteredCases = filteredCases.filter(c => c.customer_id === params.customer_id);
+      }
+      // Simple client-side pagination for mock mode
+      const perPage = params.per_page || 15;
+      const currentPage = params.page || 1;
+      const start = (currentPage - 1) * perPage;
+      const end = start + perPage;
+      const paginatedCases = filteredCases.slice(start, end);
+
+      return {
+        success: true,
+        items: JSON.parse(JSON.stringify(paginatedCases)), // 返回深拷貝
+        meta: {
+          total: filteredCases.length,
+          perPage: perPage,
+          currentPage: currentPage,
+          lastPage: Math.ceil(filteredCases.length / perPage)
+        }
+      };
+    }
+
+    const { data, error: apiError } = await get('/cases', params);
+    if (apiError) return { success: false, error: apiError };
+    return {
+      success: true,
+      items: data.data || [],
+      meta: {
+        total: data.total || 0,
+        perPage: data.per_page || params.per_page || 15,
+        currentPage: data.current_page || params.page || 1,
+        lastPage: data.last_page || 1
+      }
+    };
+  };
+
+  const updateOne = async (id, payload) => {
+    if (isMockMode) {
+      if (!mockDataStore) return { success: false, error: new Error('Mock data store not initialized in mock mode.') };
+      const updatedCase = mockDataStore.updateCase(id, payload);
+      return updatedCase ? { success: true, data: updatedCase } : { success: false, error: new Error('Case not found or update failed in mock store.') };
+    }
+    return await put(`/cases/${id}`, payload);
+  };
+
+  const createForCustomer = async (customerId, payload) => {
+    if (isMockMode) {
+      if (!mockDataStore) return { success: false, error: new Error('Mock data store not initialized in mock mode.') };
+      const newCaseData = { customer_id: customerId, ...payload, case_status: 'tracking' }; // Default to tracking for new cases
+      const newCase = mockDataStore.addCase(newCaseData);
+      return newCase ? { success: true, data: newCase } : { success: false, error: new Error('Failed to create case in mock store.') };
+    }
+    return await post(`/customers/${customerId}/cases`, payload);
+  };
+
+  const getLatestForCustomer = async (customerId) => {
+    if (isMockMode) {
+      if (!mockDataStore) return null;
+      const customerCases = mockDataStore.cases.filter(c => c.customer_id === customerId);
+      return customerCases.length > 0 ? customerCases[customerCases.length - 1] : null;
+    }
+    const { success, items } = await list({ customer_id: customerId, per_page: 1 });
+    return success && items.length > 0 ? items[0] : null;
+  };
+
+  const removeOne = async (id) => { // 新增 removeOne 函數
+    if (isMockMode) {
+      if (!mockDataStore) return { success: false, error: new Error('Mock data store not initialized in mock mode.') };
+      const removedCase = mockDataStore.removeCase(id); // 假設 mockDataStore 有 removeCase 方法
+      return removedCase ? { success: true, data: removedCase } : { success: false, error: new Error('Case not found or remove failed in mock store.') };
+    }
+    return await _delete(`/cases/${id}`);
+  };
+
+  // 將 lead 轉換為 case，並更新狀態
+  const convertToCase = async (id, payload) => {
+    if (isMockMode) {
+      if (!mockDataStore) return { success: false, error: new Error('Mock data store not initialized in mock mode.') };
+      const updatedLead = mockDataStore.updateLeadCaseStatus(id, 'tracking'); // 假設轉換後狀態為 tracking
+      if (updatedLead) {
+        // 如果有額外的 payload 需要合併到 case 中，可以在這裡處理
+        Object.assign(updatedLead, payload);
+        return { success: true, data: updatedLead };
+      }
+      return { success: false, error: new Error('Lead not found or conversion failed in mock store.') };
+    }
+    // Real API conversion logic
+    return await post(`/leads/${id}/convert-to-case`, payload);
+  };
+
+
+  return {
+    cases: readonly(cases),
+    totalCases: readonly(totalCases),
+    loading: readonly(loading),
+    error: readonly(error),
+    fetchTotalCases,
+    fetchCases,
+    list,
+    updateOne,
+    createForCustomer,
+    getLatestForCustomer,
+    removeOne, // 導出 removeOne
+    convertToCase, // 導出 convertToCase
+    // 在 mock 模式下提供 statusCounts 給側邊欄使用
+    // 否則，保持原有的 cases.value.countByStatus 結構
+    countByStatus: isMockMode && mockDataStore ? mockDataStore.statusCounts : computed(() => {}) // 確保在非 mock 模式下不會出錯
+  };
+};

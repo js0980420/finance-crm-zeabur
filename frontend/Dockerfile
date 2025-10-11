@@ -1,42 +1,27 @@
-# Development stage
-FROM node:20-alpine as development
+FROM node:22-alpine
 
-WORKDIR /app
+LABEL "language"="nodejs"
+LABEL "framework"="nuxt.js"
 
-# Install necessary dependencies for native bindings
-RUN apk add --no-cache python3 make g++
-
-COPY package*.json ./
-# Use npm install instead of npm ci to handle lock file issues
-RUN npm install --frozen-lockfile || npm install
-
-COPY . .
-
-EXPOSE 3000
-
-CMD ["npm", "run", "dev"]
-
-# Production stage
-FROM node:20-alpine as production
-
-WORKDIR /app
-
-# Install necessary dependencies for native bindings
-RUN apk add --no-cache python3 make g++
-
-COPY package*.json ./
-# Use npm install instead of npm ci to handle lock file issues
-RUN npm install --frozen-lockfile || npm install
-
-COPY . .
-
-# Set production environment variables before build
+# 生產模式環境變數
 ENV NODE_ENV=production
-RUN npm run build:prod
+ENV NUXT_HOST=0.0.0.0
+ENV NUXT_PORT=8080
+ENV NUXT_PUBLIC_API_BASE_URL=https://laravel-api.zeabur.app/api
+ENV NITRO_PRESET=node-server
 
-# Clean up dev dependencies after build
-RUN npm install --only=production && npm cache clean --force
+WORKDIR /src
 
-EXPOSE 3000
+# 複製前端檔案
+COPY frontend/ /src
 
+# 安裝依賴（使用 npm，因為有 package-lock.json）
+RUN npm install
+
+# 建置應用程式（使用 node-server preset）
+RUN npm run build
+
+EXPOSE 8080
+
+# 啟動生產伺服器 - 使用標準 Node.js 輸出
 CMD ["node", ".output/server/index.mjs"]
