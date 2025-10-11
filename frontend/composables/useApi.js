@@ -23,7 +23,7 @@ export const useApi = () => {
     }
 
     // 生產環境預設
-    return 'https://dev-finance.mercylife.cc/api'
+    return 'https://finance-crm.zeabur.app'
   }
 
   const baseURL = getApiBaseUrl()
