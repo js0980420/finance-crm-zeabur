@@ -36,19 +36,23 @@ export const useLeads = () => {
     return { success: true, data }
   }
 
-  const convertToCase = async (lead, payload) => {
-    // 若 lead 有綁定 customer，直接送件
-    if (!lead.customer_id) throw new Error('Lead 尚未綁定客戶，請先綁定或建立客戶')
+  const assignLead = async (id, payload) => {
+    const { data, error } = await put(`/leads/${id}`, { assigned_to: payload.assigned_to })
+    if (error) return { success: false, error }
+    return { success: true, lead: data.lead }
+  }
 
-    // 1) 建立案件
-    const result = await post(`/customers/${lead.customer_id}/cases`, payload)
+  // Helper: get latest lead for a customer (by created_at desc)
+  const getLatestForCustomer = async (customerId) => {
+    const { success, items } = await list({ customer_id: customerId, per_page: 1 })
+    return success && items.length > 0 ? items[0] : null
+  }
 
-    // 2) 成功後，更新 lead 狀態為 submitted（已送件）
-    if (!result.error) {
-      await put(`/leads/${lead.id}`, { status: 'submitted' })
-    }
-
-    return result
+  // Get status summary
+  const getStatusSummary = async () => {
+    const { data, error } = await get('/leads/status-summary')
+    if (error) return { success: false, error }
+    return { success: true, summary: data }
   }
 
   const listSubmittable = async (params = {}) => {
@@ -83,7 +87,11 @@ export const useLeads = () => {
     updateOne,
     updateStatus,
     removeOne,
-    convertToCase,
-    create
+    deleteOne: removeOne, // Alias for consistency
+    assignLead,
+    getLatestForCustomer,
+    getStatusSummary,
+    create,
+    createOne: create // Alias for consistency
   }
 }
