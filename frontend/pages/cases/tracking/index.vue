@@ -374,7 +374,7 @@ import TrackingCalendar from '~/components/TrackingCalendar.vue'
 import CaseEditModal from '~/components/cases/CaseEditModal.vue'
 import { useCaseManagement } from '~/composables/useCaseManagement'
 import { useUsers } from '~/composables/useUsers'
-import { useCases } from '~/composables/useCases'
+import { useLeads } from '~/composables/useLeads'
 import { useNotification } from '~/composables/useNotification'
 import { useSidebarBadges } from '~/composables/useSidebarBadges'
 
@@ -402,7 +402,7 @@ const pageConfig = getPageConfig('tracking')
 const trackingTableColumns = computed(() => getTableColumnsForPage('tracking'))
 
 const authStore = useAuthStore()
-const { updateOne: updateCase, removeOne, create: createCase } = useCases()
+const { updateOne: updateLead, removeOne, create: createLead } = useLeads()
 const { success, error: showError, confirm } = useNotification()
 const { refreshBadges } = useSidebarBadges()
 
@@ -568,7 +568,7 @@ const closeEdit = () => {
 const saveEdit = async (apiPayload) => {
   saving.value = true
   try {
-    const { updateOne } = useCases()
+    const { updateOne } = useLeads()
     let result;
 
     // 如果有圖片需要上傳，使用 FormData
@@ -747,8 +747,9 @@ const doConvert = async () => {
   if (!convertLead.value) return
 
   try {
-    const { convertToCase } = useCases() // Assuming useCases has convertToCase
-    const { error } = await convertToCase(convertLead.value.id, convertForm)
+    // 現在統一使用 leads API，不再轉換為 case
+    const { updateStatus } = useLeads()
+    const { error } = await updateStatus(convertLead.value.id, convertForm.case_status)
     if (!error) {
       convertOpen.value = false
       await loadLeads()
@@ -833,7 +834,7 @@ const doAssign = async () => {
   saving.value = true
   try {
     const assignedUser = users.value.find(u => u.id === assignForm.assigned_to)
-    const { updateOne } = useCases()
+    const { updateOne } = useLeads()
     const { error } = await updateOne(assignLead.value.id, {
       assigned_to: assignForm.assigned_to,
       assignee: assignedUser ? {

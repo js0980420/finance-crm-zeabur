@@ -322,7 +322,7 @@ import DataTable from '~/components/DataTable.vue'
 import CaseEditModal from '~/components/cases/CaseEditModal.vue'
 import { formatters } from '~/utils/tableColumns'
 import { useNotificationsStore } from '~/stores/notifications'
-import { useCases } from '~/composables/useCases'
+import { useLeads } from '~/composables/useLeads'
 import { useWebsiteInfo } from '~/composables/useWebsiteInfo'
 import { useCaseManagement } from '~/composables/useCaseManagement'
 
