@@ -1,5 +1,5 @@
 export const useLeads = () => {
-  const { get, put, del, post } = useApi()
+  const { get, put, del, post, patch } = useApi()
 
   const list = async (params = {}) => {
     const { data, error } = await get('/leads', params)
@@ -24,19 +24,35 @@ export const useLeads = () => {
     return await put(`/leads/${id}`, payload)
   }
 
-  const convertToCase = async (lead, payload) => {
-    // 若 lead 有綁定 customer，直接送件
-    if (!lead.customer_id) throw new Error('Lead 尚未綁定客戶，請先綁定或建立客戶')
+  /**
+   * 更新進線狀態
+   * @param {number} id - 進線 ID
+   * @param {string} status - 新狀態 (pending, tracking, intake, etc.)
+   * @returns {Promise} - API 回應
+   */
+  const updateStatus = async (id, status) => {
+    const { data, error } = await patch(`/leads/${id}/case-status`, { case_status: status })
+    if (error) return { success: false, error }
+    return { success: true, data }
+  }
 
-    // 1) 建立案件
-    const result = await post(`/customers/${lead.customer_id}/cases`, payload)
+  const assignLead = async (id, payload) => {
+    const { data, error } = await put(`/leads/${id}`, { assigned_to: payload.assigned_to })
+    if (error) return { success: false, error }
+    return { success: true, lead: data.lead }
+  }
 
-    // 2) 成功後，更新 lead 狀態為 submitted（已送件）
-    if (!result.error) {
-      await put(`/leads/${lead.id}`, { status: 'submitted' })
-    }
+  // Helper: get latest lead for a customer (by created_at desc)
+  const getLatestForCustomer = async (customerId) => {
+    const { success, items } = await list({ customer_id: customerId, per_page: 1 })
+    return success && items.length > 0 ? items[0] : null
+  }
 
-    return result
+  // Get status summary
+  const getStatusSummary = async () => {
+    const { data, error } = await get('/leads/status-summary')
+    if (error) return { success: false, error }
+    return { success: true, summary: data }
   }
 
   const listSubmittable = async (params = {}) => {
@@ -64,5 +80,18 @@ export const useLeads = () => {
     return { success: true, data }
   }
 
-  return { list, listSubmittable, getOne, updateOne, removeOne, convertToCase, create }
+  return {
+    list,
+    listSubmittable,
+    getOne,
+    updateOne,
+    updateStatus,
+    removeOne,
+    deleteOne: removeOne, // Alias for consistency
+    assignLead,
+    getLatestForCustomer,
+    getStatusSummary,
+    create,
+    createOne: create // Alias for consistency
+  }
 }

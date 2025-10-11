@@ -23,7 +23,7 @@ export const useApi = () => {
     }
 
     // 生產環境預設
-    return 'https://dev-finance.mercylife.cc/api'
+    return 'https://laravel-api.zeabur.app'
   }
 
   const baseURL = getApiBaseUrl()
@@ -49,12 +49,16 @@ export const useApi = () => {
       // 已移除假 token，確保 API 請求有正確的認證
     }
 
+    // 檢查是否為 FormData
+    const isFormData = data instanceof FormData
+
     // Define requestOptions outside try block so it's accessible in catch
     const requestOptions = {
       method: method.toUpperCase(),
       baseURL,
       headers: {
-        'Content-Type': 'application/json',
+        // 如果是 FormData,不設置 Content-Type (瀏覽器會自動設置 multipart/form-data)
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         'Accept': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...options.headers
@@ -65,7 +69,8 @@ export const useApi = () => {
     try {
       // 添加請求資料
       if (data && ['POST', 'PUT', 'PATCH'].includes(requestOptions.method)) {
-        requestOptions.body = JSON.stringify(data)
+        // 如果是 FormData,直接使用；否則轉為 JSON 字串
+        requestOptions.body = isFormData ? data : JSON.stringify(data)
       } else if (data && requestOptions.method === 'GET') {
         // 將參數轉換為查詢字串
         const params = new URLSearchParams(data)

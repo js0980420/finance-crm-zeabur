@@ -138,6 +138,10 @@ return new class extends Migration
             // 恢復原有的案件狀態枚舉
             DB::statement("ALTER TABLE customer_cases MODIFY COLUMN status ENUM('submitted', 'approved', 'rejected', 'disbursed') DEFAULT 'submitted'");
 
+            // 在刪除列之前，先刪除所有相關的外鍵約束
+            $table->dropConstrainedForeignId('assigned_to');
+            $table->dropConstrainedForeignId('status_updated_by'); // 新增這一行
+
             $table->dropColumn([
                 'consultation_item',
                 'line_add_friend_id',
@@ -181,10 +185,8 @@ return new class extends Migration
                 'line_display_name',
                 'line_user_id',
                 'assigned_at',
-                'assigned_to',
                 'status_note',
-                'status_updated_at',
-                'status_updated_by'
+                'status_updated_at'
             ]);
         });
     }

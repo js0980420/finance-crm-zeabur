@@ -186,6 +186,19 @@
                       刪除
                     </div>
                   </button>
+
+                  <!-- 建檔 (Convert) -->
+                  <button
+                    v-if="column.allowedActions.includes('convert')"
+                    @click="$emit('convert-item', item)"
+                    class="group relative inline-flex items-center justify-center p-2 text-blue-600 hover:text-white hover:bg-blue-600 rounded-lg transition-all duration-200"
+                    title="建檔"
+                  >
+                    <ArrowRightIcon class="w-4 h-4" />
+                    <div class="absolute bottom-full mb-2 hidden group-hover:block px-2 py-1 text-xs text-white bg-gray-900 rounded whitespace-nowrap z-10">
+                      建檔
+                    </div>
+                  </button>
                 </div>
                 <!-- Select dropdown for columns with type="select" -->
                 <select
@@ -204,7 +217,7 @@
                   </option>
                 </select>
                 <!-- Default text display -->
-                <span v-else :class="column.textClass" v-html="formatCellValue(item, column)"></span>
+                <div v-else :class="[column.textClass, 'flex flex-col']" v-html="formatCellValue(item, column)"></div>
               </slot>
             </td>
           </tr>
@@ -289,7 +302,8 @@ import {
   PencilIcon,
   TrashIcon,
   CalendarIcon,
-  ArrowUpTrayIcon
+  ArrowUpTrayIcon,
+  ArrowRightIcon // <-- 新增 ArrowRightIcon
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -445,15 +459,24 @@ const getNestedValue = (obj, path) => {
 
 const formatCellValue = (item, column) => {
   const value = getNestedValue(item, column.key)
-  console.log(`formatCellValue 被呼叫 - column: ${column.key}, value:`, value, 'hasFormatter:', !!column.formatter)
+  // console.log(`formatCellValue 被呼叫 - column: ${column.key}, value:`, value, 'hasFormatter:', !!column.formatter) // 暫時註釋掉 console.log
 
   if (column.formatter && typeof column.formatter === 'function') {
     const result = column.formatter(value, item)
-    console.log(`  → formatter 返回:`, result)
+    // console.log(`  → formatter 返回:`, result) // 暫時註釋掉 console.log
     return result
   }
 
-  console.log(`  → 沒有 formatter,直接返回 value`)
+  // 如果沒有 formatter，並且值是字符串，則進行 HTML 實體編碼，避免 HTML 註釋被錯誤解析
+  if (typeof value === 'string') {
+    return value.replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+  }
+  
+  // console.log(`  → 沒有 formatter,直接返回 value`) // 暫時註釋掉 console.log
   return value
 }
 

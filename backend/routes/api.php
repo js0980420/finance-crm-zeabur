@@ -5,18 +5,14 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Broadcast;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CustomerController;
-use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\ChatController;
-use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\LineIntegrationController;
-use App\Http\Controllers\Api\CaseController;
-use App\Http\Controllers\Api\BankRecordController;
 use App\Http\Controllers\Api\VersionController;
 use App\Http\Controllers\Api\SyncController;
 use App\Http\Controllers\Api\DebugController;
@@ -590,13 +586,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
-    
-    // Dashboard - Available to all authenticated users
-    Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
-    Route::get('/dashboard/recent-customers', [DashboardController::class, 'getRecentCustomers']);
-    Route::get('/dashboard/monthly-summary', [DashboardController::class, 'getMonthlySummary']);
-    Route::get('/dashboard/charts', [DashboardController::class, 'getChartsData']);
-    
+
     // Customer Management - Uses customer ownership middleware
     Route::apiResource('customers', CustomerController::class);
     Route::post('/customers/{customer}/track', [CustomerController::class, 'setTrackDate']);
@@ -764,6 +754,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/leads', [LeadController::class, 'index']);
     Route::post('/leads', [LeadController::class, 'store']); // 創建進線
     Route::get('/leads/submittable', [LeadController::class, 'submittable']);
+    Route::get('/leads/export/csv', [LeadController::class, 'exportCsv']); // 導出 CSV
     Route::get('/leads/{lead}', [LeadController::class, 'show']);
     Route::put('/leads/{lead}', [LeadController::class, 'update']);
     Route::patch('/leads/{lead}/case-status', [LeadController::class, 'updateCaseStatus']); // 更新案件狀態
@@ -772,29 +763,8 @@ Route::middleware(['auth:api'])->group(function () {
     // Point 37: LINE user name update for leads
     Route::put('/leads/{lead}/line-name', [LeadController::class, 'updateLineUserName']);
 
-    // Cases
-    Route::get('/cases', [CaseController::class, 'index']);
-    Route::post('/cases', [CaseController::class, 'store']); // 直接創建案件
-    Route::get('/cases/status-summary', [CaseController::class, 'statusSummary']); // 狀態統計
-    Route::get('/cases/{case}', [CaseController::class, 'show']);
-    Route::put('/cases/{case}', [CaseController::class, 'update']);
-    Route::put('/cases/{case}/assign', [CaseController::class, 'assign']); // 指派案件
-    Route::delete('/cases/{case}', [CaseController::class, 'destroy']); // 刪除案件
-    Route::post('/customers/{customer}/cases', [CaseController::class, 'storeForCustomer']);
-
-    // Bank Records (for negotiated cases view)
-    Route::get('/bank-records', [BankRecordController::class, 'index']);
-    Route::post('/bank-records', [BankRecordController::class, 'store']);
-    Route::put('/bank-records/{record}', [BankRecordController::class, 'update']);
-
-    // Reports (Manager, Admin and Executive only)
+    // Admin, Manager and Executive routes
     Route::middleware(['role:admin|executive|manager'])->group(function () {
-        Route::get('/reports/daily', [ReportController::class, 'dailyReport']);
-        Route::get('/reports/monthly', [ReportController::class, 'monthlyReport']);
-        Route::get('/reports/website-performance', [ReportController::class, 'websiteReport']);
-        Route::get('/reports/region-performance', [ReportController::class, 'regionReport']);
-        Route::get('/reports/approval-rates', [ReportController::class, 'approvalRate']);
-
         // Custom fields management
         Route::get('/custom-fields', [\App\Http\Controllers\Api\CustomFieldController::class, 'index'])->withoutMiddleware(['role:admin|executive|manager']);
         Route::post('/custom-fields', [\App\Http\Controllers\Api\CustomFieldController::class, 'store']);

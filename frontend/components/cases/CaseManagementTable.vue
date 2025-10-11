@@ -164,7 +164,7 @@ const emit = defineEmits(['edit-case', 'assign-case', 'change-status', 'delete-c
 const { pagination, updatePagination } = usePagination(10)
 const { success, error: showError, confirm } = useNotification()
 const { getUsers } = useUsers()
-const { list: listCases } = useCases()
+const { list: listLeads } = useLeads()
 
 // State
 const cases = ref([])
@@ -289,7 +289,7 @@ const loadCases = async () => {
       apiParams.assigned_to = selectedAssignee.value
     }
 
-    const { success: ok, items, meta, error } = await listCases(apiParams)
+    const { success: ok, items, meta, error } = await listLeads(apiParams)
 
     if (ok) {
       cases.value = items || []

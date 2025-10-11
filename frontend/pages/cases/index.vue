@@ -14,6 +14,12 @@
           導出 CSV
         </button>
         <button
+          @click="testEditWithMockData"
+          class="inline-flex items-center px-4 py-2 border border-yellow-300 text-sm font-medium rounded-md shadow-sm text-yellow-700 bg-yellow-50 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 mr-2"
+        >
+          🧪 測試編輯（模擬資料）
+        </button>
+        <button
           @click="openAddModal"
           class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
         >
@@ -112,7 +118,7 @@
       </div>
     </div>
 
-    <!-- Edit Modal - 使用統一的 CaseEditModal 組件 -->
+    <!-- Edit Modal - 使用Demo風格的 CaseEditModalDemo 組件 -->
     <CaseEditModal
       :isOpen="editOpen"
       :case="editingCase"
@@ -322,7 +328,7 @@ import DataTable from '~/components/DataTable.vue'
 import CaseEditModal from '~/components/cases/CaseEditModal.vue'
 import { formatters } from '~/utils/tableColumns'
 import { useNotificationsStore } from '~/stores/notifications'
-import { useCases } from '~/composables/useCases'
+import { useLeads } from '~/composables/useLeads'
 import { useWebsiteInfo } from '~/composables/useWebsiteInfo'
 import { useCaseManagement } from '~/composables/useCaseManagement'
 
@@ -365,6 +371,7 @@ const { get: apiGet } = useApi()
 // 搜尋和篩選
 const searchQuery = ref('')
 const selectedAssignee = ref('all')
+const selectedStatus = ref('pending'); // 預設為待處理
 
 // 載入狀態
 const loading = ref(false)
@@ -560,6 +567,13 @@ const loadLeads = async () => {
     if (ok) {
       leads.value = items || []
 
+      // 🔍 除錯：檢查第一個 lead 是否有 id
+      if (leads.value.length > 0) {
+        console.log('🔍 loadLeads - 第一個 lead:', leads.value[0]);
+        console.log('🔍 loadLeads - 第一個 lead 的 id:', leads.value[0].id);
+        console.log('🔍 loadLeads - 是否有 id 欄位:', 'id' in leads.value[0]);
+      }
+
       // 計算統計數據
       const total = leads.value.length
       const today = new Date()
@@ -720,8 +734,34 @@ const closeView = () => {
   selectedLead.value = null
 }
 
+// 🧪 測試用：用模擬資料測試編輯功能
+const testEditWithMockData = () => {
+  const mockLead = {
+    id: 999,
+    name: '測試客戶',
+    phone: '0912345678',
+    email: 'test@example.com',
+    case_status: 'pending',
+    business_level: 'A',
+    city: '台北市',
+    district: '大安區',
+    street: '測試路123號',
+    created_at: '2025-01-01T00:00:00.000000Z',
+    notes: '這是測試資料'
+  }
+
+  console.log('🧪 測試按鈕被點擊 - 使用模擬資料:', mockLead)
+  onEdit(mockLead)
+}
+
 // 編輯功能 - 簡化版本
 const onEdit = (lead) => {
+  console.log('🟡 index.vue - onEdit 被呼叫', {
+    leadId: lead?.id,
+    leadName: lead?.name,
+    hasId: !!lead?.id,
+    lead: lead
+  });
   editingCase.value = { ...lead }
   editOpen.value = true
 }
@@ -734,20 +774,64 @@ const closeEdit = () => {
 const saveEdit = async (apiPayload) => {
   saving.value = true
   try {
-    // CaseEditModal 已經將資料轉換為正確的 API 格式
-    // apiPayload 包含 { id, case_status, ..., payload: {...} }
     console.log('🟡 index.vue - saveEdit - 收到的 apiPayload:', apiPayload)
 
-    const { error, data } = await updateLead(apiPayload.id, apiPayload)
+    let result;
+
+    // 如果有圖片需要上傳，使用 FormData
+    if (apiPayload.hasImages && apiPayload.imageFiles && apiPayload.imageFiles.length > 0) {
+      const formData = new FormData()
+
+      // 添加所有欄位到 FormData
+      Object.keys(apiPayload).forEach(key => {
+        if (key !== 'hasImages' && key !== 'imageFiles') {
+          const value = apiPayload[key]
+          // 允許發送空字串，這樣可以清空欄位
+          if (value !== null && value !== undefined) {
+            // 布林值轉為 1 或 0
+            if (typeof value === 'boolean') {
+              formData.append(key, value ? '1' : '0')
+            } else {
+              formData.append(key, value)
+            }
+          }
+        }
+      })
+
+      // 添加圖片檔案
+      apiPayload.imageFiles.forEach((file) => {
+        formData.append('images[]', file)
+      })
+
+      result = await updateLead(apiPayload.id, formData)
+    } else {
+      // 沒有圖片，使用一般 JSON
+      const { hasImages, imageFiles, ...payload } = apiPayload
+      result = await updateLead(apiPayload.id, payload)
+    }
+
+    const { error, data } = result
 
     console.log('🟡 index.vue - saveEdit - API 回應:', { error, data })
-    console.log('🟡 index.vue - saveEdit - API 回應的完整 data:', JSON.stringify(data, null, 2))
 
     if (!error) {
-      editOpen.value = false
-      editingCase.value = null
-      await loadLeads()
-      success('案件更新成功')
+      // 優先使用 API 回傳的更新後資料來更新本地列表，這樣更有效率且能避免快取問題
+      if (data) {
+        const index = leads.value.findIndex(lead => lead.id === data.id);
+        if (index !== -1) {
+          leads.value[index] = data;
+        } else {
+          // 如果在當前列表中找不到，則重新載入整個列表（例如，狀態已改變的狀況）
+          await loadLeads();
+        }
+      } else {
+        // 如果 API 沒有回傳資料，則作為備用方案重新載入整個列表
+        await loadLeads();
+      }
+
+      editOpen.value = false;
+      editingCase.value = null;
+      success('案件更新成功');
     } else {
       showError(error?.message || '更新失敗')
     }
@@ -1048,7 +1132,7 @@ const saveAddModal = async (formData) => {
   try {
     // 準備資料
     const newLeadData = {
-      customer_name: formData.customer_name?.trim() || null,
+      name: formData.customer_name?.trim() || null,
       email: formData.email || null,
       phone: formData.phone || null,
       line_id: formData.line_id || null,
@@ -1061,17 +1145,22 @@ const saveAddModal = async (formData) => {
     }
 
     // 使用 createLead 方法
-    const { success: ok, data: newLead, error } = await createLead(newLeadData)
+    const { success: ok, data: newLeadDataFromApi, error } = await createLead(newLeadData) // 將 newLead 改名為 newLeadDataFromApi
 
-    if (ok && newLead) {
+    if (ok && newLeadDataFromApi) { // 檢查 newLeadDataFromApi
       // 直接將新進線加入列表頂部
-      leads.value.unshift(newLead)
+      leads.value.unshift(newLeadDataFromApi) // <-- 這裡應該添加真正的 Lead 數據
       addModalOpen.value = false
-      success(`新增進線 #${newLead.id} 成功！`)
+      success(`新增進線 #${newLeadDataFromApi.id} 成功！`) // 使用 newLeadDataFromApi.id
       // 背景更新徽章數量
       refreshBadges()
     } else {
-      showError('新增失敗，請稍後再試')
+      if (error && error.status === 422 && error.errors) {
+        const errorMessages = Object.values(error.errors).flat().join('\n');
+        showError(`新增失敗，請檢查以下欄位：\n${errorMessages}`);
+      } else {
+        showError(error?.message || '新增失敗，請稍後再試');
+      }
     }
 
   } catch (error) {
@@ -1112,7 +1201,7 @@ const handleCellChange = async ({ item, columnKey, newValue, column }) => {
   }
 }
 
-// 更新進線狀態
+// 更新進線狀態 - 使用統一的 composable
 const updateLeadStatus = async (item, newStatus) => {
   if (!item || !item.id) {
     console.error('Invalid item:', item)
@@ -1121,13 +1210,11 @@ const updateLeadStatus = async (item, newStatus) => {
   }
 
   try {
-    const { patch } = useApi()
-    const { data, error } = await patch(`/leads/${item.id}/case-status`, {
-      case_status: newStatus
-    })
+    const { updateStatus } = useLeads()
+    const { success: updateSuccess, error } = await updateStatus(item.id, newStatus) // <-- 檢查 updateSuccess
 
-    if (error) {
-      showError('更新進線狀態失敗')
+    if (error || !updateSuccess) { // <-- 如果有錯誤或者不成功
+      showError(error?.message || '更新進線狀態失敗')
       return
     }
 

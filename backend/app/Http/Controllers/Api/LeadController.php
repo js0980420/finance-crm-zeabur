@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 use App\Models\CustomerLead;
+use App\Models\CaseImage;
 use App\Models\LineUser;
 use Illuminate\Validation\Rule;
 
@@ -22,7 +24,7 @@ class LeadController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $query = CustomerLead::with(['customer','assignee']);
+        $query = CustomerLead::with(['customer','assignee','images']);
 
         // 預設顯示 WP 表單進件
         if ($request->has('channel')) {
@@ -41,9 +43,14 @@ class LeadController extends Controller
             });
         }
 
-        // 篩選：案件狀態 status
+        // 篩選：案件狀態 case_status
+        if ($request->filled('case_status')) {
+            $query->where('case_status', $request->get('case_status'));
+        }
+
+        // 兼容舊的 status 參數
         if ($request->filled('status')) {
-            $query->where('status', $request->get('status'));
+            $query->where('case_status', $request->get('status'));
         }
 
         // 角色權限：非 admin/executive/manager 則自動限制為只看自己（staff）
@@ -120,10 +127,56 @@ class LeadController extends Controller
         return response()->json($leads);
     }
 
+    // POST /api/leads
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'customer_id' => 'nullable|exists:customers,id',
+            'name' => 'nullable|string|max:100',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:100',
+            'channel' => 'required|in:wp,lineoa,email,phone,wp_form',
+            'line_id' => 'nullable|string|max:100',
+            'ip_address' => 'nullable|string|max:45',
+            'source' => 'nullable|string|max:255',
+            'assigned_to' => 'nullable|exists:users,id',
+            'notes' => 'nullable|string|max:1000',
+            'payload' => 'nullable|array',
+            'case_status' => ['nullable', Rule::in(LeadStatus::values())],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $data = $validator->validated();
+
+        // 處理 payload
+        $payload = $data['payload'] ?? [];
+        if (isset($data['notes'])) {
+            $payload['notes'] = $data['notes'];
+            unset($data['notes']);
+        }
+
+        // 移除 payload 從主要資料中
+        unset($data['payload']);
+
+        // 創建 lead
+        $lead = new CustomerLead($data);
+        $lead->payload = $payload;
+        $lead->case_status = $data['case_status'] ?? LeadStatus::Pending->value;
+        $lead->save();
+
+        return response()->json([
+            'message' => 'Lead created successfully',
+            'lead' => $lead->load('customer', 'assignee')
+        ], 201);
+    }
+
     // GET /api/leads/{lead}
     public function show(CustomerLead $lead)
     {
-        return response()->json(['lead' => $lead->load('customer')]);
+        return response()->json(['lead' => $lead->load('customer', 'images')]);
     }
 
     // GET /api/leads/submittable
@@ -131,7 +184,7 @@ class LeadController extends Controller
     {
         $user = Auth::user();
         $query = CustomerLead::with(['customer','assignee'])
-            ->whereIn('status', ['intake', 'approved']);
+            ->whereIn('case_status', ['valid_customer', 'tracking']);
 
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
@@ -168,37 +221,171 @@ class LeadController extends Controller
 
         $validator = Validator::make($request->all(), [
             'customer_id' => 'sometimes|exists:customers,id',
+            'case_status' => ['sometimes', Rule::in(LeadStatus::values())],
+            'assigned_to' => 'sometimes|nullable|exists:users,id',
             'channel' => 'sometimes|in:wp,lineoa,email,phone,wp_form',
+            'source' => 'sometimes|nullable|string',
+            'website' => 'sometimes|nullable|string',
+            'name' => 'sometimes|nullable|string|max:100',
+            'phone' => 'sometimes|nullable|string|max:20',
             'email' => 'sometimes|nullable|email',
             'line_id' => 'sometimes|nullable|string|max:100',
+            'line_display_name' => 'sometimes|nullable|string',
+            'loan_purpose' => 'sometimes|nullable|string',
+            'business_level' => 'sometimes|nullable|string',
             'ip_address' => 'sometimes|nullable|string',
-            'assigned_to' => 'sometimes|nullable|exists:users,id',
-            'notes' => 'sometimes|nullable|string|max:1000',
+            'user_agent' => 'sometimes|nullable|string',
+            'is_suspected_blacklist' => 'sometimes|boolean',
+            'suspected_reason' => 'sometimes|nullable|string',
+            'notes' => 'sometimes|nullable|string',
+            'created_by' => 'sometimes|nullable|exists:users,id',
+            'assigned_at' => 'sometimes|nullable|date',
+
+            // 個人資料
+            'birth_date' => 'sometimes|nullable|date',
+            'id_number' => 'sometimes|nullable|string|max:20',
+            'education' => 'sometimes|nullable|string',
+            'case_number' => 'sometimes|nullable|string',
+
+            // 聯絡資訊
+            'city' => 'sometimes|nullable|string',
+            'district' => 'sometimes|nullable|string',
+            'street' => 'sometimes|nullable|string',
+            'landline_phone' => 'sometimes|nullable|string',
+            'comm_address_same_as_home' => 'sometimes|nullable|boolean',
+            'comm_address' => 'sometimes|nullable|string',
+            'residence_duration' => 'sometimes|nullable|string',
+            'residence_owner' => 'sometimes|nullable|string',
+            'telecom_operator' => 'sometimes|nullable|string',
+
+            // 公司資料
+            'company_name' => 'sometimes|nullable|string',
+            'company_phone' => 'sometimes|nullable|string',
+            'company_address' => 'sometimes|nullable|string',
+            'job_title' => 'sometimes|nullable|string',
+            'monthly_income' => 'sometimes|nullable|numeric',
+            'has_labor_insurance' => 'sometimes|nullable|boolean',
+            'company_tenure' => 'sometimes|nullable|string',
+
+            // 貸款資訊
+            'demand_amount' => 'sometimes|nullable|numeric',
+            'loan_amount' => 'sometimes|nullable|numeric',
+            'loan_type' => 'sometimes|nullable|string',
+            'loan_term' => 'sometimes|nullable|string',
+            'interest_rate' => 'sometimes|nullable|numeric',
+
+            // 緊急聯絡人
+            'emergency_contact_1_name' => 'sometimes|nullable|string',
+            'emergency_contact_1_relationship' => 'sometimes|nullable|string',
+            'emergency_contact_1_phone' => 'sometimes|nullable|string',
+            'contact_time_1' => 'sometimes|nullable|string',
+            'confidential_1' => 'sometimes|nullable|boolean',
+            'emergency_contact_2_name' => 'sometimes|nullable|string',
+            'emergency_contact_2_relationship' => 'sometimes|nullable|string',
+            'emergency_contact_2_phone' => 'sometimes|nullable|string',
+            'contact_time_2' => 'sometimes|nullable|string',
+            'confidential_2' => 'sometimes|nullable|boolean',
+
+            // 其他
+            'referrer' => 'sometimes|nullable|string',
             'payload' => 'sometimes|array',
-            'status' => ['sometimes', Rule::in(LeadStatus::values())],
         ]);
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-        // 只填入模型存在的欄位
+
+        // 取得所有驗證後的資料（除了 payload）
         $data = collect($validator->validated())
-            ->only(['customer_id','assigned_to','channel','email','line_id','ip_address','status'])
+            ->except(['payload'])
             ->toArray();
+
+        // Debug: 記錄接收到的資料和驗證後的資料
+        \Log::info('LeadController@update - Request data:', [
+            'request_all' => $request->all(),
+            'validated' => $data,
+            'diff_count' => count($request->all()) - count($data),
+        ]);
+
+        // 記錄更新前的資料
+        $originalData = $lead->only(array_keys($data));
+        \Log::info('LeadController@update - Before update:', [
+            'id' => $lead->id,
+            'original' => $originalData,
+        ]);
+
         $lead->fill($data);
 
+        // 記錄 dirty 的欄位
+        \Log::info('LeadController@update - Dirty fields:', [
+            'dirty' => $lead->getDirty(),
+            'isDirty' => $lead->isDirty(),
+        ]);
+
         // 合併 payload（保留原有）
-        $payload = is_array($lead->payload) ? $lead->payload : [];
         if ($request->has('payload') && is_array($request->payload)) {
+            $payload = is_array($lead->payload) ? $lead->payload : [];
             $payload = array_merge($payload, $request->payload);
+            $lead->payload = $payload;
         }
-        // 將未持久化的欄位也保存到 payload 內
-        if ($request->filled('notes')) {
-            $payload['notes'] = (string)$request->notes;
-        }
-        $lead->payload = $payload;
 
         $lead->save();
-        return response()->json(['message' => 'updated', 'lead' => $lead]);
+
+        // 處理圖片上傳
+        if ($request->hasFile('images')) {
+            $images = $request->file('images');
+            if (!is_array($images)) {
+                $images = [$images];
+            }
+
+            foreach ($images as $image) {
+                if ($image->isValid()) {
+                    // 生成唯一檔名
+                    $fileName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                    // 儲存到 storage/app/public/case_images
+                    $filePath = $image->storeAs('case_images', $fileName, 'public');
+
+                    // 保存到資料庫
+                    CaseImage::create([
+                        'case_id' => $lead->id,
+                        'file_path' => $filePath,
+                        'file_name' => $image->getClientOriginalName(),
+                    ]);
+                }
+            }
+        }
+
+        return response()->json([
+            'message' => 'updated',
+            'lead' => $lead->load('customer', 'assignee', 'images')
+        ]);
+    }
+
+    // PATCH /api/leads/{lead}/case-status
+    public function updateCaseStatus(Request $request, CustomerLead $lead)
+    {
+        $user = Auth::user();
+        $isPrivileged = $user && $user->hasAnyRole(['admin', 'executive', 'manager']);
+        if (!$isPrivileged && $lead->assigned_to !== $user->id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'case_status' => ['required', Rule::in(LeadStatus::values())],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $lead->case_status = $request->case_status;
+        $lead->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Case status updated successfully',
+            'lead' => $lead->load('customer', 'assignee')
+        ]);
     }
 
     // DELETE /api/leads/{lead}
@@ -213,7 +400,123 @@ class LeadController extends Controller
         $lead->delete();
         return response()->json(['message' => 'deleted']);
     }
-    
+
+    // GET /api/leads/export/csv - 導出案件資料為 CSV
+    public function exportCsv(Request $request)
+    {
+        $user = Auth::user();
+        $query = CustomerLead::with(['customer', 'assignee', 'images']);
+
+        // 套用相同的篩選邏輯
+        if ($request->has('channel')) {
+            $query->where('channel', $request->get('channel', 'wp_form'));
+        }
+
+        if ($search = $request->get('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%$search%")
+                    ->orWhere('phone', 'like', "%$search%")
+                    ->orWhere('email', 'like', "%$search%");
+            });
+        }
+
+        if ($request->filled('case_status')) {
+            $query->where('case_status', $request->get('case_status'));
+        }
+
+        // 角色權限
+        $isPrivileged = $user && $user->hasAnyRole(['admin', 'executive', 'manager']);
+        if (!$isPrivileged) {
+            $query->where('assigned_to', $user->id);
+        }
+
+        $leads = $query->orderByDesc('created_at')->get();
+
+        // 生成 CSV
+        $csvData = [];
+        $csvData[] = [
+            'ID', '案件編號', '案件狀態', '姓名', '手機', 'Email', '身分證字號', '出生日期', '最高學歷',
+            '戶籍地址', '市話', '通訊地址同戶籍', '通訊地址', '居住時間', '居住身分', '電信業者',
+            '公司名稱', '公司電話', '公司地址', '職稱', '月收入', '有無薪轉勞保', '到職時間',
+            '需求金額', '貸款金額', '貸款類型', '貸款期數', '利率',
+            '緊急聯絡人1', '關係1', '電話1', '聯絡時間1', '保密1',
+            '緊急聯絡人2', '關係2', '電話2', '聯絡時間2', '保密2',
+            '介紹人', '業務等級', '備註', '建立時間', '圖片連結'
+        ];
+
+        foreach ($leads as $lead) {
+            $imageUrls = $lead->images->map(function($img) {
+                return $img->url;
+            })->implode(', ');
+
+            $csvData[] = [
+                $lead->id,
+                $lead->case_number,
+                $lead->case_status,
+                $lead->name,
+                $lead->phone,
+                $lead->email,
+                $lead->id_number,
+                $lead->birth_date,
+                $lead->education,
+                $lead->city . $lead->district . $lead->street,
+                $lead->landline_phone,
+                $lead->comm_address_same_as_home ? '是' : '否',
+                $lead->comm_address,
+                $lead->residence_duration,
+                $lead->residence_owner,
+                $lead->telecom_operator,
+                $lead->company_name,
+                $lead->company_phone,
+                $lead->company_address,
+                $lead->job_title,
+                $lead->monthly_income,
+                $lead->has_labor_insurance ? '是' : '否',
+                $lead->company_tenure,
+                $lead->demand_amount,
+                $lead->loan_amount,
+                $lead->loan_type,
+                $lead->loan_term,
+                $lead->interest_rate,
+                $lead->emergency_contact_1_name,
+                $lead->emergency_contact_1_relationship,
+                $lead->emergency_contact_1_phone,
+                $lead->contact_time_1,
+                $lead->confidential_1 ? '是' : '否',
+                $lead->emergency_contact_2_name,
+                $lead->emergency_contact_2_relationship,
+                $lead->emergency_contact_2_phone,
+                $lead->contact_time_2,
+                $lead->confidential_2 ? '是' : '否',
+                $lead->referrer,
+                $lead->business_level,
+                $lead->notes,
+                $lead->created_at,
+                $imageUrls
+            ];
+        }
+
+        // 生成 CSV 檔案
+        $filename = 'leads_export_' . date('YmdHis') . '.csv';
+        $handle = fopen('php://temp', 'r+');
+
+        // 添加 BOM 以支援中文
+        fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+
+        foreach ($csvData as $row) {
+            fputcsv($handle, $row);
+        }
+
+        rewind($handle);
+        $csv = stream_get_contents($handle);
+        fclose($handle);
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
     /**
      * Point 37: 判斷是否為LINE user_id格式
      * LINE user_id 格式：U + 32位字母數字，總長度33

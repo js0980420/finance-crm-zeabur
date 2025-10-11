@@ -38,16 +38,17 @@ CASE_STATUS_OPTIONS 定義:
 網路進線管理 (4種): valid_customer (有效客), invalid_customer (無效客), customer_service (客服), blacklist (黑名單)
 送件管理 (4種): approved_disbursed (核准撥款), approved_undisbursed (核准未撥), conditional_approval (附條件), declined (婉拒)
 業務管理 (1種): tracking (追蹤中)
-- 待處理
-- 有效客
-- 無效客
-- 客服
-- 黑名單
-- 核准撥款
-- 核准未撥
-- 附條件
-- 婉拒
-- 追蹤中
+CASE_STATUS_OPTIONS = 
+   1. pending：待處理
+   2. valid_customer：有效客
+   3. invalid_customer：無效客
+   4. customer_service：客服
+   5. blacklist：黑名單
+   6. approved_disbursed：核准撥款
+   7. approved_undisbursed：核准未撥
+   8. conditional_approval：附條件
+   9. declined：婉拒
+   10. tracking：追蹤中
 
 
 來源管道用下拉選單編輯，網站表單、官方LINE、email、專線

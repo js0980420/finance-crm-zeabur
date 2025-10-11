@@ -1,3 +1,4 @@
+import { defineStore } from 'pinia'
 export const useSettingsStore = defineStore('settings', () => {
   const showFootbar = ref(true)
   const sidebarMenuItems = ref([
@@ -30,10 +31,10 @@ export const useSettingsStore = defineStore('settings', () => {
       name: '網路進線管理',
       icon: 'UserGroupIcon',
       children: [
-        { name: '有效客', href: '/cases/valid-customer', permissions: ['customer_management', 'all_access'] },
-        { name: '無效客', href: '/cases/invalid-customer', permissions: ['customer_management', 'all_access'] },
-        { name: '客服', href: '/cases/customer-service', permissions: ['customer_management', 'all_access'] },
-        { name: '黑名單', href: '/cases/blacklist', permissions: ['customer_management', 'all_access'] }
+        { name: '有效客', href: '/cases/valid-customers', permissions: ['customer_management', 'all_access'] },
+        { name: '無效客', href: '/cases/invalid-customers', permissions: ['customer_management', 'all_access'] },
+        { name: '客服', href: '/cases/customer-services', permissions: ['customer_management', 'all_access'] },
+        { name: '黑名單', href: '/cases/blacklists', permissions: ['customer_management', 'all_access'] }
       ],
       permissions: ['customer_management', 'all_access']
     },

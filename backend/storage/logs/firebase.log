@@ -1,6 +1,0 @@
-[2025-09-30 15:30:39] local.INFO: Firebase channel test message  
-[2025-09-30 15:30:39] local.INFO: Firebase configuration check {"project_id":"finance0810new","database_url":"https://finance0810new-default-rtdb.asia-southeast1.firebasedatabase.app/","credentials_exist":false,"credentials_path":"/var/www/html/storage/app/firebase-service-account.json"} 
-[2025-10-01 05:46:08] local.INFO: Firebase channel test message  
-[2025-10-01 05:46:08] local.INFO: Firebase configuration check {"project_id":"finance0810new","database_url":"https://finance0810new-default-rtdb.asia-southeast1.firebasedatabase.app/","credentials_exist":false,"credentials_path":"/var/www/html/storage/app/firebase-service-account.json"} 
-[2025-10-01 15:15:15] local.INFO: Firebase channel test message  
-[2025-10-01 15:15:15] local.INFO: Firebase configuration check {"project_id":"finance0810new","database_url":"https://finance0810new-default-rtdb.asia-southeast1.firebasedatabase.app/","credentials_exist":false,"credentials_path":"/var/www/html/storage/app/firebase-service-account.json"} 

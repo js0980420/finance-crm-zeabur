@@ -16,9 +16,8 @@ class CustomerLead extends Model
         'assigned_to',
         'channel', // wp_form, phone_call, line, email
         'source', // page url / website
-        'website', // 統一欄位名稱
+        'website',
         'name',
-        'customer_name', // 統一欄位名稱
         'phone',
         'email',
         'line_id',
@@ -41,12 +40,13 @@ class CustomerLead extends Model
         'case_number',
 
         // 聯絡資訊
-        'customer_region',
-        'home_address',
+        'city',
+        'district',
+        'street',
         'landline_phone',
         'comm_address_same_as_home',
         'comm_address',
-        'comm_phone',
+        'contact_time',
         'residence_duration',
         'residence_owner',
         'telecom_operator',
@@ -86,6 +86,9 @@ class CustomerLead extends Model
     protected $casts = [
         'payload' => 'array',
         'is_suspected_blacklist' => 'boolean',
+        'has_labor_insurance' => 'boolean',
+        'confidential_1' => 'boolean',
+        'confidential_2' => 'boolean',
     ];
 
     public function customer()
@@ -104,5 +107,13 @@ class CustomerLead extends Model
     public function website()
     {
         return $this->belongsTo(Website::class, 'source', 'domain');
+    }
+
+    /**
+     * 案件圖片
+     */
+    public function images()
+    {
+        return $this->hasMany(CaseImage::class, 'case_id');
     }
 }

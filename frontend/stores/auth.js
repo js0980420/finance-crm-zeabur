@@ -1,3 +1,5 @@
+import { defineStore } from 'pinia'
+
 export const useAuthStore = defineStore('auth', () => {
   // 用戶狀態
   const user = ref(null)
@@ -166,7 +168,12 @@ export const useAuthStore = defineStore('auth', () => {
     console.log('已登出，清除會話資料')
     
     // 重定向到登入頁面
-    navigateTo('/auth/login')
+    if (process.client) {
+      const router = useRouter();
+      router.push('/auth/login');
+    } else {
+      navigateTo('/auth/login');
+    }
   }
 
   // 設定用戶資料
@@ -201,7 +208,12 @@ export const useAuthStore = defineStore('auth', () => {
         sessionStorage.removeItem('user-profile')
         user.value = null
         // 重定向到登入頁
-        navigateTo('/auth/login')
+        if (process.client) {
+          const router = useRouter();
+          router.push('/auth/login');
+        } else {
+          navigateTo('/auth/login');
+        }
       }
     } catch (error) {
       console.warn('Background token verification error:', error)

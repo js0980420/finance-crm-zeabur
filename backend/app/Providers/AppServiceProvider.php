@@ -4,8 +4,6 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
-use App\Models\CustomerCase;
-use App\Observers\CustomerCaseObserver;
 use App\Models\ChatConversation;
 use App\Models\Customer;
 use App\Observers\VersionedModelObserver;
@@ -45,8 +43,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         try {
-            CustomerCase::observe(CustomerCaseObserver::class);
-            
             // 註冊版本追踪觀察者（僅當模型存在時）
             if (class_exists(ChatConversation::class)) {
                 ChatConversation::observe(VersionedModelObserver::class);

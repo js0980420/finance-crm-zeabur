@@ -1,25 +1,35 @@
-# Environment files
+# ==================================
+# 1. 環境配置檔 (.env files)
+# ==================================
 .env
-.env.local
-.env.production
-.env.staging
 .env.*
 backend/.env
-backend/.env.local
-backend/.env.production
-backend/.env.staging
+backend/.env.*
+frontend/nuxt.config.ts
 
-# Dependencies
-node_modules/
-vendor/
+# ==================================
+# 2. 依賴項與套件 (Dependencies)
+# ==================================
+/node_modules
+/vendor
+/backend/vendor
 
-# Build outputs
-dist/
-build/
-.next/
-.nuxt/
+# ==================================
+# 3. 建構輸出與程式碼快取 (Build & Cache)
+# ==================================
+/dist
+/build
+/.next
+/.nuxt
+/.output
+/frontend/.nuxt
+/frontend/dist
+/frontend/.output
+/backend/bootstrap/cache/*
 
-# Cache and temp files
+# ==================================
+# 4. 快取、日誌與臨時檔案 (Cache, Logs & Temp)
+# ==================================
 .cache/
 .temp/
 .tmp/
@@ -27,50 +37,64 @@ build/
 *.pid
 *.seed
 *.pid.lock
+error/
+nul
 
-# IDE files
+# 測試與 Demo 檔案
+/frontend/tests/           # 前端測試檔案
+/tests/e2e/                # E2E 測試檔案
+/test-results/             # Playwright 測試結果
+/playwright-report/        # Playwright 報告
+playwright.config.js       # Playwright 配置
+/Demo/                     # Demo 資料夾
+/Demo/index.html
+/backend/startup.sh        # 後端啟動腳本
+
+# Laravel 專用儲存與日誌
+/backend/storage/*.log
+/backend/storage/framework/cache/
+/backend/storage/framework/sessions/
+/backend/storage/framework/views/
+/backend/storage/logs/
+
+# ==================================
+# 5. Docker 相關配置 (包含開發模式檔案)
+# ==================================
+docker-compose.override.yml
+docker-compose.dev.yml   # 新增的開發模式配置檔
+.docker/
+Dockerfile
+/backend/Dockerfile
+/backend/docker/nginx.conf
+/backend/docker/supervisord.conf
+/backend/docker/startup.sh
+/frontend/Dockerfile
+
+
+# ==================================
+# 6. IDE、作業系統與資料庫檔案 (IDE, OS, DB)
+# ==================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# OS files
 .DS_Store
 Thumbs.db
-
-# Laravel specific
-backend/storage/logs/
-backend/storage/framework/cache/
-backend/storage/framework/sessions/
-backend/storage/framework/views/
-backend/bootstrap/cache/
-
-# Nuxt specific
-frontend/.nuxt/
-frontend/dist/
-frontend/.output/
-
-# Docker
-docker-compose.override.yml
-.docker/
-
-# Documentation and project files
-CLAUDE.md
-docs/
-.claude/
-
-# Error logs and debug files
-error/
-
-# Database
 *.sqlite
 *.db
 
-# Uploads
-uploads/
-storage/app/public/uploads/
+# ==================================
+# 7. 文件、未知路徑與本地敏感資料
+# ==================================
+CLAUDE.md
+docs/
+.claude/
+AAI/
+Agile-AI/
 
-AAI
-Agile-AI
+# 上傳與本地敏感資料
+/uploads
+/storage/app/public/uploads/
+/backend/public/storage # 排除 Laravel 符號連結
 backend/storage/app/firebase-service-account.json

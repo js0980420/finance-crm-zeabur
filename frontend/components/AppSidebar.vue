@@ -148,10 +148,10 @@ const getBadgeCount = (item) => {
     '/cases': 'pending',
 
     // 網路進線管理
-    '/cases/valid-customer': 'valid_customer',
-    '/cases/invalid-customer': 'invalid_customer',
-    '/cases/customer-service': 'customer_service',
-    '/cases/blacklist': 'blacklist',
+    '/cases/valid-customers': 'valid_customer',
+    '/cases/invalid-customers': 'invalid_customer',
+    '/cases/customer-services': 'customer_service',
+    '/cases/blacklists': 'blacklist',
 
     // 送件管理
     '/cases/approved-disbursed': 'approved_disbursed',

@@ -374,7 +374,7 @@ import TrackingCalendar from '~/components/TrackingCalendar.vue'
 import CaseEditModal from '~/components/cases/CaseEditModal.vue'
 import { useCaseManagement } from '~/composables/useCaseManagement'
 import { useUsers } from '~/composables/useUsers'
-import { useCases } from '~/composables/useCases'
+import { useLeads } from '~/composables/useLeads'
 import { useNotification } from '~/composables/useNotification'
 import { useSidebarBadges } from '~/composables/useSidebarBadges'
 
@@ -402,7 +402,7 @@ const pageConfig = getPageConfig('tracking')
 const trackingTableColumns = computed(() => getTableColumnsForPage('tracking'))
 
 const authStore = useAuthStore()
-const { updateOne: updateCase, removeOne, create: createCase } = useCases()
+const { updateOne: updateLead, removeOne, create: createLead } = useLeads()
 const { success, error: showError, confirm } = useNotification()
 const { refreshBadges } = useSidebarBadges()
 
@@ -565,11 +565,44 @@ const closeEdit = () => {
   editingCase.value = null
 }
 
-const saveEdit = async (updatedCase) => {
+const saveEdit = async (apiPayload) => {
   saving.value = true
   try {
-    const { updateOne } = useCases()
-    const { error } = await updateOne(updatedCase.id, updatedCase)
+    const { updateOne } = useLeads()
+    let result;
+
+    // 如果有圖片需要上傳，使用 FormData
+    if (apiPayload.hasImages && apiPayload.imageFiles && apiPayload.imageFiles.length > 0) {
+      const formData = new FormData()
+
+      // 添加所有欄位到 FormData
+      Object.keys(apiPayload).forEach(key => {
+        if (key !== 'hasImages' && key !== 'imageFiles') {
+          const value = apiPayload[key]
+          if (value !== null && value !== undefined && value !== '') {
+            // 布林值轉為 1 或 0
+            if (typeof value === 'boolean') {
+              formData.append(key, value ? '1' : '0')
+            } else {
+              formData.append(key, value)
+            }
+          }
+        }
+      })
+
+      // 添加圖片檔案
+      apiPayload.imageFiles.forEach((file) => {
+        formData.append('images[]', file)
+      })
+
+      result = await updateOne(apiPayload.id, formData)
+    } else {
+      // 沒有圖片，使用一般 JSON
+      const { hasImages, imageFiles, ...payload } = apiPayload
+      result = await updateOne(apiPayload.id, payload)
+    }
+
+    const { error } = result
 
     if (!error) {
       editOpen.value = false
@@ -714,8 +747,9 @@ const doConvert = async () => {
   if (!convertLead.value) return
 
   try {
-    const { convertToCase } = useCases() // Assuming useCases has convertToCase
-    const { error } = await convertToCase(convertLead.value.id, convertForm)
+    // 現在統一使用 leads API，不再轉換為 case
+    const { updateStatus } = useLeads()
+    const { error } = await updateStatus(convertLead.value.id, convertForm.case_status)
     if (!error) {
       convertOpen.value = false
       await loadLeads()
@@ -753,15 +787,8 @@ const handleCellChange = async ({ item, columnKey, newValue, column }) => {
 
   switch (columnKey) {
     case 'case_status':
-      // 使用統一的 updateCaseStatus 函數
-      await updateCaseStatus(item.id, newValue, false) // tracking 頁面不自動導航
-      // 更新本地狀態
-      const index = leads.value.findIndex(l => l.id === item.id)
-      if (index !== -1) {
-        leads.value[index].case_status = newValue
-      }
-      // 更新側邊欄計數
-      await refreshBadges()
+      // 更新案件狀態
+      await updateLeadStatus(item, newValue)
       break
     case 'business_level':
       await updateBusinessLevel(item.id, newValue)
@@ -807,7 +834,7 @@ const doAssign = async () => {
   saving.value = true
   try {
     const assignedUser = users.value.find(u => u.id === assignForm.assigned_to)
-    const { updateOne } = useCases()
+    const { updateOne } = useLeads()
     const { error } = await updateOne(assignLead.value.id, {
       assigned_to: assignForm.assigned_to,
       assignee: assignedUser ? {
@@ -829,6 +856,46 @@ const doAssign = async () => {
     console.error('Assign lead error:', err)
   } finally {
     saving.value = false
+  }
+}
+
+// 更新進線狀態 - 使用統一的 composable
+const updateLeadStatus = async (item, newStatus) => {
+  if (!item || !item.id) {
+    console.error('Invalid item:', item)
+    showError('無效的進線資料')
+    return
+  }
+
+  try {
+    const { updateStatus } = useLeads()
+    const { error } = await updateStatus(item.id, newStatus)
+
+    if (error) {
+      showError('更新進線狀態失敗')
+      return
+    }
+
+    // 更新本地數據
+    const index = leads.value.findIndex(l => l.id === item.id)
+    if (index !== -1) {
+      // 如果狀態改變離開 tracking,則從列表移除
+      if (newStatus !== 'tracking') {
+        leads.value.splice(index, 1)
+      } else {
+        leads.value[index].case_status = newStatus
+      }
+    }
+
+    const statusLabel = CASE_STATUS_OPTIONS.find(opt => opt.value === newStatus)?.label
+    success(`進線狀態已更新為：${statusLabel}`)
+
+    // 刷新側邊欄計數
+    await refreshBadges()
+
+  } catch (error) {
+    console.error('更新進線狀態失敗:', error)
+    showError('更新失敗，請稍後再試')
   }
 }
 
