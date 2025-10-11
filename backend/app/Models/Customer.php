@@ -245,11 +245,11 @@ class Customer extends Model
     }
 
     /**
-     * Get customer's cases
+     * Get customer's leads
      */
-    public function cases()
+    public function leads()
     {
-        return $this->hasMany(CustomerCase::class);
+        return $this->hasMany(CustomerLead::class);
     }
 
     /**
@@ -282,14 +282,6 @@ class Customer extends Model
     public function identifiers()
     {
         return $this->hasMany(CustomerIdentifier::class);
-    }
-
-    /**
-     * Leads imported from multiple channels
-     */
-    public function leads()
-    {
-        return $this->hasMany(CustomerLead::class);
     }
 
     /**
