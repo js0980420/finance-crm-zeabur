@@ -142,7 +142,6 @@ class LeadController extends Controller
             'assigned_to' => 'nullable|exists:users,id',
             'notes' => 'nullable|string|max:1000',
             'payload' => 'nullable|array',
-            'status' => ['nullable', Rule::in(LeadStatus::values())],
             'case_status' => ['nullable', Rule::in(LeadStatus::values())],
         ]);
 
@@ -165,7 +164,7 @@ class LeadController extends Controller
         // 創建 lead
         $lead = new CustomerLead($data);
         $lead->payload = $payload;
-        $lead->case_status = $data['case_status'] ?? $data['status'] ?? LeadStatus::Pending->value;
+        $lead->case_status = $data['case_status'] ?? LeadStatus::Pending->value;
         $lead->save();
 
         return response()->json([
@@ -228,7 +227,6 @@ class LeadController extends Controller
             'source' => 'sometimes|nullable|string',
             'website' => 'sometimes|nullable|string',
             'name' => 'sometimes|nullable|string|max:100',
-            'customer_name' => 'sometimes|nullable|string|max:100',
             'phone' => 'sometimes|nullable|string|max:20',
             'email' => 'sometimes|nullable|email',
             'line_id' => 'sometimes|nullable|string|max:100',
@@ -250,12 +248,12 @@ class LeadController extends Controller
             'case_number' => 'sometimes|nullable|string',
 
             // 聯絡資訊
-            'customer_region' => 'sometimes|nullable|string',
-            'home_address' => 'sometimes|nullable|string',
+            'city' => 'sometimes|nullable|string',
+            'district' => 'sometimes|nullable|string',
+            'street' => 'sometimes|nullable|string',
             'landline_phone' => 'sometimes|nullable|string',
             'comm_address_same_as_home' => 'sometimes|nullable|boolean',
             'comm_address' => 'sometimes|nullable|string',
-            'comm_phone' => 'sometimes|nullable|string',
             'residence_duration' => 'sometimes|nullable|string',
             'residence_owner' => 'sometimes|nullable|string',
             'telecom_operator' => 'sometimes|nullable|string',
@@ -438,7 +436,7 @@ class LeadController extends Controller
         $csvData = [];
         $csvData[] = [
             'ID', '案件編號', '案件狀態', '姓名', '手機', 'Email', '身分證字號', '出生日期', '最高學歷',
-            '戶籍地址', '市話', '通訊地址同戶籍', '通訊地址', '通訊電話', '居住時間', '居住身分', '電信業者',
+            '戶籍地址', '市話', '通訊地址同戶籍', '通訊地址', '居住時間', '居住身分', '電信業者',
             '公司名稱', '公司電話', '公司地址', '職稱', '月收入', '有無薪轉勞保', '到職時間',
             '需求金額', '貸款金額', '貸款類型', '貸款期數', '利率',
             '緊急聯絡人1', '關係1', '電話1', '聯絡時間1', '保密1',
@@ -455,17 +453,16 @@ class LeadController extends Controller
                 $lead->id,
                 $lead->case_number,
                 $lead->case_status,
-                $lead->customer_name,
+                $lead->name,
                 $lead->phone,
                 $lead->email,
                 $lead->id_number,
                 $lead->birth_date,
                 $lead->education,
-                $lead->home_address,
+                $lead->city . $lead->district . $lead->street,
                 $lead->landline_phone,
                 $lead->comm_address_same_as_home ? '是' : '否',
                 $lead->comm_address,
-                $lead->comm_phone,
                 $lead->residence_duration,
                 $lead->residence_owner,
                 $lead->telecom_operator,
