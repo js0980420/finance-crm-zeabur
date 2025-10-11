@@ -22,7 +22,7 @@ import {
 // 導入表格配置
 import {
   getTableColumnsForPage
-} from './useCaseTableColumns'
+} from './useCaseTableColumns.js'
 
 // 導入表單配置
 import {

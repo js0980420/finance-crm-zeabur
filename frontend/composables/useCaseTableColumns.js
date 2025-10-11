@@ -110,7 +110,7 @@ export const UNIFIED_TABLE_COLUMNS = [
   },
   // 7. 姓名
   {
-    key: "name",
+    key: "customer_name",
     title: "姓名",
     sortable: true,
     width: "100px",
@@ -197,7 +197,23 @@ export const UNIFIED_TABLE_COLUMNS = [
       return emailLine + phoneLine
     }
   },
-
+  // 12. 地區/地址
+  {
+    key: "location",
+    title: "地區/地址",
+    sortable: false,
+    width: "130px",
+    hidden: true,
+    formatter: (value, item) => {
+      const region = item.payload?.['所在地區'] || ''
+      const address = item.payload?.['房屋地址'] || ''
+      if (!region && !address) return '-'
+      const parts = []
+      if (region) parts.push(region)
+      if (address) parts.push(address)
+      return parts.join(' ')
+    }
+  },
   // 13. 需求金額
   {
     key: "amount",
@@ -253,7 +269,7 @@ export const getTableColumnsForPage = (pageType = 'default') => {
         'datetime',
         'assignee',
         'channel',
-        'name',
+        'customer_name',
         'line_info',
         'loan_purpose', // Changed from 'purpose'
         'website',      // Changed from 'website_name'
@@ -269,7 +285,7 @@ export const getTableColumnsForPage = (pageType = 'default') => {
         'datetime',          // 3. 進線時間
         'assignee',          // 4. 承辦業務
         'channel',           // 5. 來源管道
-        'name',     // 6. 客戶姓名
+        'customer_name',     // 6. 客戶姓名
         'line_info',         // 7. LINE資訊
         'loan_purpose',      // 8. 諮詢項目 (修正為 loan_purpose)
         'website',           // 9. 網站 (修正為 website)
@@ -287,7 +303,7 @@ export const getTableColumnsForPage = (pageType = 'default') => {
         'datetime',
         'assignee',
         'channel',
-        'name',
+        'customer_name',
         'line_info',
         'loan_purpose',
         'contact_info',
@@ -304,7 +320,7 @@ export const getTableColumnsForPage = (pageType = 'default') => {
         'case_number',
         'datetime',
         'assignee',
-        'name',
+        'customer_name',
         'line_info',
         'loan_purpose',
         'amount',
@@ -318,7 +334,7 @@ export const getTableColumnsForPage = (pageType = 'default') => {
         'case_status',
         'datetime',
         'assignee',
-        'name',
+        'customer_name',
         'actions'
       ];
       break;
@@ -346,6 +362,7 @@ export const getTableColumnsForPage = (pageType = 'default') => {
         break;
 
       case 'pending':
+      case 'valid_customer':
       case 'invalid_customer':
       case 'customer_service':
       case 'blacklist':
@@ -353,13 +370,8 @@ export const getTableColumnsForPage = (pageType = 'default') => {
       case 'approved_undisbursed':
       case 'conditional_approval':
       case 'declined':
-        // 這些頁面：只有編輯、刪除
+        // 其他頁面：只有編輯、刪除
         actionsColumn.allowedActions = ['edit', 'delete'];
-        break;
-
-      case 'valid_customer':
-        // 有效客頁面：建檔、編輯、刪除
-        actionsColumn.allowedActions = ['convert', 'edit', 'delete'];
         break;
 
       default:
