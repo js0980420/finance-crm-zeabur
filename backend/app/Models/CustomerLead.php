@@ -20,7 +20,7 @@ class CustomerLead extends Model
         'name',
         'phone',
         'email',
-li_id',
+        'li_id',
         'line_display_name', // LINE 顯示名稱
         'loan_purpose', // 諮詢項目
         'business_level', // 業務等級 A/B/C
