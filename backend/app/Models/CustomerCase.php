@@ -48,7 +48,7 @@ class CustomerCase extends Model
         'landline_phone',
         'comm_address_same_as_home',
         'comm_address',
-        'comm_phone',
+        'contact_time',
         'residence_duration',
         'residence_owner',
         'telecom_operator',
@@ -206,7 +206,7 @@ class CustomerCase extends Model
             ],
             '聯絡資訊' => [
                 'customer_region', 'home_address', 'landline_phone', 'comm_address_same_as_home',
-                'comm_address', 'comm_phone', 'residence_duration', 'residence_owner', 'telecom_operator'
+                'comm_address', 'contact_time', 'residence_duration', 'residence_owner', 'telecom_operator'
             ],
             '公司資料' => [
                 'company_name', 'company_phone', 'company_address', 'job_title',
